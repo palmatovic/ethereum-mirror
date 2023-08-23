@@ -1,0 +1,28 @@
+FROM alpine:latest
+
+RUN apk update && apk upgrade && apk add --no-cache \
+    dbus \
+    libdrm \
+    nss \
+    libxkbcommon \
+    gnupg \
+    x11vnc \
+    xvfb \
+    fluxbox \
+    wget
+RUN adduser -D apps
+RUN mkdir -p /home/apps && chown apps:apps /home/apps
+
+RUN apk update && apk upgrade && apk add chromium
+
+RUN wget -q -O - https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --import - \
+    && echo "deb http://dl.google.com/linux/chrome/deb/ stable main" >> /etc/apk/repositories
+
+RUN apk update && apk add --no-cache google-chrome-stable
+
+COPY bootstrap.sh /home/apps/bootstrap.sh
+RUN chown -R apps:apps /home/apps
+RUN chmod +x /home/apps/bootstrap.sh
+RUN chmod 777 /home/apps/bootstrap.sh
+
+CMD ["bash", "/home/apps/bootstrap.sh"]

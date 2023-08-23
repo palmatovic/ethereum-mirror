@@ -1,0 +1,3 @@
+npm install playwright
+npm install dotenv
+npm install log

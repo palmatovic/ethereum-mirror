@@ -1,0 +1,109 @@
+version: '3.8'
+
+services:
+  hideout-video-crawler-1:
+    image: crawler:node
+    ports:
+      - 5900:5900
+    privileged: true
+    environment:
+      - VNC_SERVER_PASSWORD=password
+      - PROCESSENABLED=hideout_video
+      - REWARDPLATFORM=zoombucks_rewards
+      - HEADLESSMODEENABLED=false
+      - ZOOMBUCKSUSERNAME=aaaa
+      - ZOOMBUCKSPASSWORD=aaaa
+      - ELEMENTCHECKATTEMPTNUMBER=6
+      - ELEMENTCHECKINTERVAL=2
+      - HIDEOUTUSERNAME=aaaa
+      - HIDEOUTPASSWORD=aaaa
+      - VIDEOPERPAGE=20
+      - VIDEOMAXDURATION=6
+      - VIDEOMINDURATION=4
+      # il valore minimo è 1000/500
+      - BROWSERWIDTH=1200
+      - BROWSERHEIGHT=700
+    user: apps
+#    deploy:
+#        resources:
+#            limits:
+#              cpus: '0.50'
+#              memory: '512M'
+#            reservations:
+#              cpus: '0.25'
+#              memory: '256M'
+
+  loottv-video-crawler-1:
+    image: crawler:node
+    ports:
+      - 5901:5900
+    privileged: true
+    environment:
+      - VNC_SERVER_PASSWORD=password
+      - PROCESSENABLED=loottv_video
+      - REWARDPLATFORM=zoombucks_rewards
+      - HEADLESSMODEENABLED=false
+      - ELEMENTCHECKATTEMPTNUMBER=6
+      - ELEMENTCHECKINTERVAL=2
+      - LOOTTVUSERNAME=aaa
+      - LOOTTVPASSWORD=aaa
+      - VIDEOMAXDURATION=6
+      - VIDEOMINDURATION=4
+      # il valore minimo è 1000/500
+      - BROWSERWIDTH=1100
+      - BROWSERHEIGHT=600
+    user: apps
+#    deploy:
+#        resources:
+#            limits:
+#              cpus: '0.50'
+#              memory: '512M'
+#            reservations:
+#              cpus: '0.25'
+#              memory: '256M'
+
+  hideout-video-crawler-2:
+    image: crawler:node
+    ports:
+      - 5902:5900
+    privileged: true
+    environment:
+      - VNC_SERVER_PASSWORD=password
+      - PROCESSENABLED=hideout_video
+      - REWARDPLATFORM=free_crypto_rewards
+      - HEADLESSMODEENABLED=false
+      - FREECRYPTOREWARDSUSERNAME=aaaa
+      - FREECRYPTOREWARDSPASSWORD=aaaa
+      - ELEMENTCHECKATTEMPTNUMBER=6
+      - ELEMENTCHECKINTERVAL=2
+      - HIDEOUTUSERNAME=aaaa
+      - HIDEOUTPASSWORD=aaaa
+      - VIDEOPERPAGE=20
+      - VIDEOMAXDURATION=6
+      - VIDEOMINDURATION=4
+      # il valore minimo è 1000/500
+      - BROWSERWIDTH=1200
+      - BROWSERHEIGHT=700
+    user: apps
+    
+  loottv-video-crawler-2:
+    image: crawler:node
+    ports:
+      - 5903:5900
+    privileged: true
+    environment:
+      - VNC_SERVER_PASSWORD=password
+      - PROCESSENABLED=loottv_video
+      - REWARDPLATFORM=free_crypto_rewards
+      - HEADLESSMODEENABLED=false
+      - ELEMENTCHECKATTEMPTNUMBER=6
+      - ELEMENTCHECKINTERVAL=2
+      - LOOTTVUSERNAME=aaaa
+      - LOOTTVPASSWORD=aaaa
+      - VIDEOMAXDURATION=6
+      - VIDEOMINDURATION=4
+      # il valore minimo è 1000/500
+      - BROWSERWIDTH=1100
+      - BROWSERHEIGHT=600
+    user: apps
+
