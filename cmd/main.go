@@ -14,7 +14,7 @@ type Transaction struct {
 	AgeMillisA         string
 	AgeTimestamp       string
 	AgeDistanceFromNow string
-	AgeMillisB         string
+	GasPrice           string
 	From               string
 	To                 string
 	Amount             string
@@ -103,16 +103,16 @@ func main() {
 			TxType:             cellData[1],
 			Method:             cellData[2],
 			Block:              cellData[3],
-			AgeMillisA:         cellData[6],
 			AgeTimestamp:       cellData[4],
 			AgeDistanceFromNow: cellData[5],
-			AgeMillisB:         cellData[9],
+			AgeMillisA:         cellData[6],
 			From:               cellData[7],
 			To:                 cellData[8],
-			Amount:             cellData[10],
-			Value:              cellData[13],
+			Amount:             cellData[9],
+			Value:              cellData[10],
 			Asset:              cellData[11],
 			TxnFee:             cellData[12],
+			GasPrice:           cellData[13],
 		}
 
 		transactions = append(transactions, rowData)
