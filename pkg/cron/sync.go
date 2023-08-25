@@ -84,7 +84,28 @@ func getLast25TransactionsDetails(browser playwright.Browser, transactions []dat
 		transactionHashValue = strings.TrimPrefix(transactionHashValue, "\t")
 		transactionHashValue = strings.TrimPrefix(transactionHashValue, " ")
 
-		log.Infof("transaction details retrieved for %s\n", transactionHashValue)
+		_, err = page.WaitForSelector("xpath=/html/body/main/div/div[1]/div[1]/div/div[1]/div[5]/div[2]/div/div/div")
+		if err != nil {
+			_ = page.Close()
+			return nil, err
+		}
+
+		detail, err := page.QuerySelector("xpath=/html/body/main/div/div[1]/div[1]/div/div[1]/div[5]/div[2]/div/div/div")
+		if err != nil {
+			_ = page.Close()
+			return nil, err
+		}
+		detailValue, err := detail.TextContent()
+		if err != nil {
+			_ = page.Close()
+			return nil, err
+		}
+
+		detailValue = strings.TrimPrefix(detailValue, "\n")
+		detailValue = strings.TrimPrefix(detailValue, "\t")
+		detailValue = strings.TrimPrefix(detailValue, " ")
+
+		log.Infof("transaction details retrieved for %s\n", detailValue)
 	}
 	return transactionsDetails, nil
 
