@@ -5,14 +5,9 @@ import (
 	"ethereum-mirror/pkg/cron"
 	"ethereum-mirror/pkg/database"
 	"github.com/playwright-community/playwright-go"
-	scheduler "github.com/robfig/cron/v3"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
-	"os"
-	"os/signal"
-	"syscall"
-	"time"
 )
 
 func main() {
@@ -53,37 +48,40 @@ func main() {
 	c := cron.Env{Browser: browser, Database: db}
 
 	// Create a new cron scheduler
-	cronScheduler := scheduler.New()
-
-	// Define the cron job to run c.SyncTransactions every 1 minute
-	_, err = cronScheduler.AddFunc("*/1 * * * *", func() {
-		_, syncErr := c.SyncTransactions()
-		if syncErr != nil {
-			log.Errorln("error during database sync:", syncErr)
-		} else {
-			log.Infoln("database sync completed successfully")
-		}
-	})
+	//cronScheduler := scheduler.New()
+	_, err = c.SyncTransactions()
 	if err != nil {
-		log.Fatalln("error scheduling cron job:", err)
+		log.Fatalln("error during cron synchronization")
 	}
+	//// Define the cron job to run c.SyncTransactions every 1 minute
+	//_, err = cronScheduler.AddFunc("*/1 * * * *", func() {
+	//	_, syncErr := c.SyncTransactions()
+	//	if syncErr != nil {
+	//		log.Errorln("error during database sync:", syncErr)
+	//	} else {
+	//		log.Infoln("database sync completed successfully")
+	//	}
+	//})
+	//if err != nil {
+	//	log.Fatalln("error scheduling cron job:", err)
+	//}
 
 	// Start the cron scheduler
-	cronScheduler.Start()
+	//cronScheduler.Start()
 
-	// Set up a signal handler to gracefully shut down the program
-	signals := make(chan os.Signal, 1)
-	signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
-
-	// Wait for a termination signal
-	select {
-	case sig := <-signals:
-		log.Infof("received signal %s, gracefully shutting down...", sig)
-		cancel() // Trigger graceful shutdown
-
-		// Wait for the cron jobs to finish before exiting
-		<-time.After(time.Minute) // Adjust the wait duration as needed
-
-		log.Infoln("shutdown complete")
-	}
+	//// Set up a signal handler to gracefully shut down the program
+	//signals := make(chan os.Signal, 1)
+	//signal.Notify(signals, os.Interrupt, syscall.SIGTERM)
+	//
+	//// Wait for a termination signal
+	//select {
+	//case sig := <-signals:
+	//	log.Infof("received signal %s, gracefully shutting down...", sig)
+	//	cancel() // Trigger graceful shutdown
+	//
+	//	// Wait for the cron jobs to finish before exiting
+	//	<-time.After(time.Minute) // Adjust the wait duration as needed
+	//
+	//	log.Infoln("shutdown complete")
+	//}
 }

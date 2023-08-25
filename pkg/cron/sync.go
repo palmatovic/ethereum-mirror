@@ -23,17 +23,74 @@ func (e *Env) SyncTransactions() (response interface{}, err error) {
 	if err != nil {
 		return nil, err
 	}
-	if err = saveNewTransactions(e.Database, transactions); err != nil {
+	var savedTransactions []database2.Transaction
+	if savedTransactions, err = saveNewTransactions(e.Database, transactions); err != nil {
 		return nil, err
+	}
+
+	if savedTransactions != nil && len(savedTransactions) > 0 {
+		_, err = getLast25TransactionsDetails(e.Browser, savedTransactions)
+		if err != nil {
+			return nil, err
+		}
+		//var savedTransactionsDetails []database2.TransactionDetail
+		//if savedTransactions, err := saveNewTransactionsDetails(e.Database, transactionDetails); err != nil {
+		//	return nil, err
+		//}
+
 	}
 
 	return nil, nil
 }
 
-func saveNewTransactions(database *gorm.DB, transactions []model.Transaction) error {
+func getLast25TransactionsDetails(browser playwright.Browser, transactions []database2.Transaction) ([]model.TransactionDetail, error) {
+	var transactionsDetails []model.TransactionDetail
+
+	for i := range transactions {
+		fmt.Println("retrieving transaction details for", transactions[i].TransactionHash)
+		page, err := browser.NewPage()
+		if err != nil {
+			return nil, err
+		}
+
+		page.SetDefaultTimeout(1000 * 40)
+
+		_, err = page.Goto(fmt.Sprintf("https://etherscan.io/tx/%s", transactions[i].TransactionHash))
+		if err != nil {
+			_ = page.Close()
+			return nil, err
+		}
+
+		_, err = page.WaitForSelector("#referralLink-1")
+		if err != nil {
+			_ = page.Close()
+			return nil, err
+		}
+
+		transactionHash, err := page.QuerySelector("#referralLink-1")
+		if err != nil {
+			_ = page.Close()
+			return nil, err
+		}
+		text, err := transactionHash.TextContent()
+		if err != nil {
+			_ = page.Close()
+			return nil, err
+		}
+		fmt.Println("transaction details retrieved for", transactions[i].TransactionHash, text)
+	}
+	return transactionsDetails, nil
+
+}
+
+func saveNewTransactionsDetails(database *gorm.DB, transactions []database2.Transaction) ([]database2.TransactionDetail, error) {
+	return nil, nil
+}
+
+func saveNewTransactions(database *gorm.DB, transactions []model.Transaction) ([]database2.Transaction, error) {
 	scraping := database2.Scraping{}
 	if err := database.Create(&scraping).Error; err != nil {
-		return err
+		return nil, err
 	}
 
 	var recentTransaction database2.Transaction
@@ -41,7 +98,7 @@ func saveNewTransactions(database *gorm.DB, transactions []model.Transaction) er
 	to := len(transactions)
 	if err := database.Order("AgeTimestamp DESC").First(&recentTransaction).Error; err != nil {
 		if !errors.Is(err, gorm.ErrRecordNotFound) {
-			return err
+			return nil, err
 		}
 	} else {
 		// if it's present and its position is different from the first in the list, then take all elements until the block element
@@ -52,7 +109,7 @@ func saveNewTransactions(database *gorm.DB, transactions []model.Transaction) er
 		case -1:
 			break
 		case 0:
-			return nil
+			return nil, nil
 		}
 		if idx > 0 {
 			to = idx
@@ -62,27 +119,27 @@ func saveNewTransactions(database *gorm.DB, transactions []model.Transaction) er
 	var dbTransactions []database2.Transaction
 	for i := from; i < to; i++ {
 		dbTransactions = append(dbTransactions, database2.Transaction{
-			TransactionHash:    transactions[i].TransactionHash,
-			ScrapingId:         scraping.ScrapingId,
-			TxType:             transactions[i].TxType,
-			Method:             transactions[i].Method,
-			Block:              transactions[i].Block,
-			AgeMillis:          transactions[i].AgeMillis,
-			AgeTimestamp:       transactions[i].AgeTimestamp,
-			AgeDistanceFromNow: transactions[i].AgeDistanceFromNow,
-			GasPrice:           transactions[i].GasPrice,
-			From:               transactions[i].From,
-			To:                 transactions[i].To,
-			Amount:             transactions[i].Amount,
-			Value:              transactions[i].Value,
-			Asset:              transactions[i].Asset,
-			TxnFee:             transactions[i].TxnFee})
+			TransactionHash:      transactions[i].TransactionHash,
+			ScrapingId:           scraping.ScrapingId,
+			TxType:               transactions[i].TxType,
+			Method:               transactions[i].Method,
+			Block:                transactions[i].Block,
+			AgeMillis:            transactions[i].AgeMillis,
+			AgeTimestamp:         transactions[i].AgeTimestamp,
+			AgeDistanceFromQuery: transactions[i].AgeDistanceFromQuery,
+			GasPrice:             transactions[i].GasPrice,
+			From:                 transactions[i].From,
+			To:                   transactions[i].To,
+			Amount:               transactions[i].Amount,
+			Value:                transactions[i].Value,
+			Asset:                transactions[i].Asset,
+			TxnFee:               transactions[i].TxnFee})
 	}
 	if err := database.Create(&dbTransactions).Error; err != nil {
-		return err
+		return nil, err
 	}
 
-	return nil
+	return dbTransactions, nil
 }
 
 func getLast25Transactions(browser playwright.Browser) ([]model.Transaction, error) {
@@ -90,6 +147,9 @@ func getLast25Transactions(browser playwright.Browser) ([]model.Transaction, err
 	if err != nil {
 		return nil, err
 	}
+	defer func() {
+		_ = page.Close()
+	}()
 
 	page.SetDefaultTimeout(1000 * 40)
 
@@ -137,20 +197,23 @@ func getLast25Transactions(browser playwright.Browser) ([]model.Transaction, err
 		}
 
 		rowData = model.Transaction{
-			TransactionHash:    cellData[0],
-			TxType:             cellData[1],
-			Method:             cellData[2],
-			Block:              cellData[3],
-			AgeTimestamp:       func() time.Time { t, _ := time.Parse(time.RFC3339Nano, cellData[4]); return t }(),
-			AgeDistanceFromNow: cellData[5],
-			AgeMillis:          cellData[6],
-			From:               cellData[7],
-			To:                 cellData[8],
-			Amount:             cellData[9],
-			Value:              cellData[10],
-			Asset:              cellData[11],
-			TxnFee:             cellData[12],
-			GasPrice:           cellData[13],
+			TransactionHash: cellData[0],
+			TxType:          cellData[1],
+			Method:          cellData[2],
+			Block:           cellData[3],
+			AgeTimestamp: func() time.Time {
+				t, _ := time.Parse(time.DateTime, cellData[4])
+				return t
+			}(),
+			AgeDistanceFromQuery: cellData[5],
+			AgeMillis:            cellData[6],
+			From:                 cellData[7],
+			To:                   cellData[8],
+			Amount:               cellData[9],
+			Value:                cellData[10],
+			Asset:                cellData[11],
+			TxnFee:               cellData[12],
+			GasPrice:             cellData[13],
 		}
 
 		transactions = append(transactions, rowData)
