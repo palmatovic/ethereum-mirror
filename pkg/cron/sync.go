@@ -6,6 +6,7 @@ import (
 	"ethereum-mirror/pkg/model"
 	"fmt"
 	"github.com/playwright-community/playwright-go"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"slices"
 	"strings"
@@ -47,7 +48,7 @@ func getLast25TransactionsDetails(browser playwright.Browser, transactions []dat
 	var transactionsDetails []model.TransactionDetail
 
 	for i := range transactions {
-		fmt.Println("retrieving transaction details for", transactions[i].TransactionHash)
+		log.Infof("retrieving transaction details for %s", transactions[i].TransactionHash)
 		page, err := browser.NewPage()
 		if err != nil {
 			return nil, err
@@ -72,12 +73,18 @@ func getLast25TransactionsDetails(browser playwright.Browser, transactions []dat
 			_ = page.Close()
 			return nil, err
 		}
-		text, err := transactionHash.TextContent()
+
+		transactionHashValue, err := transactionHash.TextContent()
 		if err != nil {
 			_ = page.Close()
 			return nil, err
 		}
-		fmt.Println("transaction details retrieved for", transactions[i].TransactionHash, text)
+
+		transactionHashValue = strings.TrimPrefix(transactionHashValue, "\n")
+		transactionHashValue = strings.TrimPrefix(transactionHashValue, "\t")
+		transactionHashValue = strings.TrimPrefix(transactionHashValue, " ")
+
+		log.Infof("transaction details retrieved for %s\n", transactionHashValue)
 	}
 	return transactionsDetails, nil
 
