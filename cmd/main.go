@@ -4,17 +4,32 @@ import (
 	"context"
 	"ethereum-mirror/pkg/cron"
 	"ethereum-mirror/pkg/database"
+	"github.com/caarlos0/env/v6"
 	"github.com/playwright-community/playwright-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
 
-func main() {
-	// Initialize logger
-	log := logrus.New()
+type Environment struct {
+	Address string `env:"ADDRESS,required"` //0x905615DE62BE9B1a6582843E8ceDeDB6BDA42367
+}
 
-	db, err := gorm.Open(sqlite.Open("scraping.db"), &gorm.Config{})
+func main() {
+	var (
+		e   = Environment{}
+		log = logrus.New()
+		db  *gorm.DB
+		err error
+	)
+
+	if err = env.Parse(&e); err != nil {
+		log.WithError(err).Fatalln("error during environment parsing")
+	}
+
+	if db, err = gorm.Open(sqlite.Open("scraping.db"), &gorm.Config{}); err != nil {
+		log.WithError(err).Fatalln("error during database connection")
+	}
 
 	err = db.AutoMigrate(&database.Transaction{}, &database.Scraping{})
 	if err != nil {
@@ -40,12 +55,14 @@ func main() {
 	}
 
 	// Launch Firefox browser
-	browser, err := pw.Firefox.Launch()
+	browser, err := pw.Firefox.Launch(playwright.BrowserTypeLaunchOptions{
+		Headless: playwright.Bool(false),
+	})
 	if err != nil {
 		log.Fatalln("error during browser launch:", err)
 	}
 
-	c := cron.Env{Browser: browser, Database: db}
+	c := cron.Env{Browser: browser, Database: db, Address: e.Address}
 
 	// Create a new cron scheduler
 	//cronScheduler := scheduler.New()
