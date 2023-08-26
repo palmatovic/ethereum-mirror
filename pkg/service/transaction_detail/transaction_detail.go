@@ -1,11 +1,15 @@
 package transaction_detail
 
 import (
+	"encoding/json"
 	"ethereum-mirror/pkg/database"
 	"ethereum-mirror/pkg/model"
 	"ethereum-mirror/pkg/util"
 	"fmt"
 	"github.com/playwright-community/playwright-go"
+	log "github.com/sirupsen/logrus"
+	"os"
+	"strings"
 	"sync"
 )
 
@@ -23,7 +27,10 @@ func GetByTransaction(browser playwright.Browser, transactions []database.Transa
 			if err != nil {
 				panic(err)
 			}
-			defer page.Close()
+			defer func() {
+				_ = page.Close()
+			}()
+
 			page.SetDefaultTimeout(1000 * 40)
 
 			var detail model.TransactionDetail
@@ -38,17 +45,49 @@ func GetByTransaction(browser playwright.Browser, transactions []database.Transa
 			}
 			detail.TransactionHash = txHash
 
-			action, err := util.GetObjectByPage(page, util.TxAction)
-			if err != nil {
-				panic(err)
-			}
-			detail.TransactionAction = action
-
 			status, err := util.GetObjectByPage(page, util.TxStatus)
 			if err != nil {
 				panic(err)
 			}
-			detail.Status = status
+			detail.TransactionStatus = status
+
+			block, err := util.GetObjectByPage(page, util.TxBlock)
+			if err != nil {
+				panic(err)
+			}
+			detail.TransactionBlock = block
+
+			timestamp, err := util.GetObjectByPage(page, util.TxTimestamp)
+			if err != nil {
+				panic(err)
+			}
+			detail.TransactionTimestamp = timestamp
+
+			if strings.ToLower(status) == "success" {
+				action, err := util.GetObjectByPage(page, util.TxAction)
+				if err != nil {
+					panic(err)
+				}
+				detail.TransactionAction = action
+			}
+
+			from, err := util.GetObjectByPage(page, util.TxFrom)
+			if err != nil {
+				panic(err)
+			}
+			detail.TransactionFrom = from
+
+			var to string
+			to, err = util.GetObjectByPage(page, util.TxInteractedWithToSuccess)
+			if err != nil {
+				var errFail error
+				to, errFail = util.GetObjectByPage(page, util.TxInteractedWithToFail)
+				if errFail != nil {
+					log.WithError(err).Errorf("cannot get To for transaction %v", transaction.TransactionHash)
+					panic(err)
+				}
+			}
+			detail.TransactionTo = to
 
 			details = append(details, detail)
 
@@ -57,6 +96,16 @@ func GetByTransaction(browser playwright.Browser, transactions []database.Transa
 	}
 	wg.Wait()
 
-	fmt.Println(details)
+	b, err := json.Marshal(details)
+	if err != nil {
+		return nil, err
+	}
+	file, err := os.Create("detail.json")
+	if err != nil {
+		return nil, err
+	}
+	defer file.Close()
+	_, err = file.Write(b)
+
 	return details, nil
 }

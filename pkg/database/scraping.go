@@ -7,7 +7,7 @@ func (Scraping) TableName() string {
 }
 
 type Scraping struct {
-	ScrapingId  int       `gorm:"column:ScrapingId;primaryKey;autoIncrement"`
-	CreatedAt   time.Time `gorm:"column:AgeTimestamp;type:DATETIME;autoCreateTime"`
-	ProcessedAt time.Time `gorm:"column:ProcessedAt;type:DATETIME"`
+	ScrapingId    int       `gorm:"column:ScrapingId;primaryKey;autoIncrement"`
+	WalletAddress string    `gorm:"column:WalletAddress;varchar(1024)"`
+	CreatedAt     time.Time `gorm:"column:AgeTimestamp;type:DATETIME;autoCreateTime"`
 }

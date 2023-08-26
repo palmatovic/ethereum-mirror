@@ -15,8 +15,6 @@ import (
 )
 
 // GetByLimitAndAddress returns a list of all transactions of ethereum address
-// TODO
-// Table has 25 rows (if limit is greater than 25, process will execute more than one page, clicking on next table page)
 func GetByLimitAndAddress(browser playwright.Browser, address string) (transactions []model.Transaction, err error) {
 
 	page, err := browser.NewPage()
@@ -33,19 +31,19 @@ func GetByLimitAndAddress(browser playwright.Browser, address string) (transacti
 		return nil, err
 	}
 
-	_, err = page.WaitForSelector(string(util.HeaderPageSize))
-	if err != nil {
-		return nil, err
-	}
-
-	pageSize, err := page.QuerySelector(string(util.HeaderPageSize))
-	if err != nil {
-		return nil, err
-	}
-
-	if _, err = pageSize.SelectOption(playwright.SelectOptionValues{Values: &[]string{"25"}}); err != nil {
-		return nil, err
-	}
+	//_, err = page.WaitForSelector(string(util.HeaderPageSize))
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//pageSize, err := page.QuerySelector(string(util.HeaderPageSize))
+	//if err != nil {
+	//	return nil, err
+	//}
+	//
+	//if _, err = pageSize.SelectOption(playwright.SelectOptionValues{Values: &[]string{"25"}}); err != nil {
+	//	return nil, err
+	//}
 
 	_, err = page.WaitForSelector(string(util.HeaderTable))
 	if err != nil {
@@ -114,18 +112,13 @@ func GetByLimitAndAddress(browser playwright.Browser, address string) (transacti
 		transactions = append(transactions, rowData)
 	}
 
-	// Sort transactions by AgeTimestamp in descending order
-	//sort.Slice(transactions, func(i, j int) bool {
-	//	return transactions[i].AgeTimestamp.After(transactions[j].AgeTimestamp)
-	//})
-
 	return transactions, nil
 }
 
 // SaveNew saves only new transaction data in the database Transaction table
 // transactions input must be sorted by AgeTimestamp from recent to oldest
-func SaveNew(database *gorm.DB, transactions []model.Transaction) ([]database2.Transaction, error) {
-	scraping := database2.Scraping{}
+func SaveNew(database *gorm.DB, walletAddress string, transactions []model.Transaction) ([]database2.Transaction, error) {
+	scraping := database2.Scraping{WalletAddress: walletAddress}
 	if err := database.Create(&scraping).Error; err != nil {
 		return nil, err
 	}

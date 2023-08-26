@@ -23,7 +23,7 @@ func (e *Env) SyncTransactions() (response interface{}, err error) {
 
 	if transactions != nil && len(transactions) > 0 {
 		var savedTransactions []database2.Transaction
-		if savedTransactions, err = transaction.SaveNew(e.Database, transactions); err != nil {
+		if savedTransactions, err = transaction.SaveNew(e.Database, e.Address, transactions); err != nil {
 			return nil, err
 		}
 		if savedTransactions != nil && len(savedTransactions) > 0 {
