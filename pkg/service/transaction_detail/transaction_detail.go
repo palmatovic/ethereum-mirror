@@ -27,7 +27,6 @@ func GetByTransaction(browser playwright.Browser, transactions []database.Transa
 			page.SetDefaultTimeout(1000 * 40)
 
 			var detail model.TransactionDetail
-			//log.Infof("retrieving detail for %s", transaction.TransactionHash)
 
 			_, err = page.Goto(fmt.Sprintf("https://etherscan.io/tx/%s", transaction.TransactionHash))
 			if err != nil {
@@ -52,6 +51,7 @@ func GetByTransaction(browser playwright.Browser, transactions []database.Transa
 			detail.Status = status
 
 			details = append(details, detail)
+
 			<-sem
 		}(transactions[i])
 	}

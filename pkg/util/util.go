@@ -13,7 +13,14 @@ const (
 	TxStatus Selector = "xpath=/html/body/main/div/div[1]/div[1]/div/div[1]/div[2]/div[2]/span"
 )
 
+const (
+	HeaderPageSize  Selector = "xpath=/html/body/main/section[3]/div[1]/form/div[3]/div/select"
+	HeaderTable     Selector = "table.table tbody tr"
+	HeaderTableData Selector = "td"
+)
+
 func CleanText(text *string) {
+	*text = strings.TrimSpace(*text)
 	*text = strings.TrimPrefix(*text, " ")
 	*text = strings.TrimPrefix(*text, "\n")
 	*text = strings.TrimPrefix(*text, "\t")

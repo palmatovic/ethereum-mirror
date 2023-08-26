@@ -68,7 +68,7 @@ func main() {
 	//cronScheduler := scheduler.New()
 	_, err = c.SyncTransactions()
 	if err != nil {
-		log.Fatalln("error during cron synchronization")
+		log.WithError(err).Fatalln("error during cron synchronization")
 	}
 	//// Define the cron job to run c.SyncTransactions every 1 minute
 	//_, err = cronScheduler.AddFunc("*/1 * * * *", func() {

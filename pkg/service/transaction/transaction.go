@@ -4,12 +4,12 @@ import (
 	"errors"
 	database2 "ethereum-mirror/pkg/database"
 	"ethereum-mirror/pkg/model"
+	"ethereum-mirror/pkg/util"
 	"fmt"
 	"github.com/playwright-community/playwright-go"
 	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"slices"
-	"sort"
 	"strings"
 	"time"
 )
@@ -28,76 +28,96 @@ func GetByLimitAndAddress(browser playwright.Browser, address string) (transacti
 		_ = page.Close()
 	}()
 
-	_, err = page.Goto(fmt.Sprintf("https://etherscan.io/advanced-filter?fadd=%s&tadd=%s&txntype=0", address, address))
+	_, err = page.Goto(fmt.Sprintf("https://etherscan.io/txs?a=%s", address))
 	if err != nil {
 		return nil, err
 	}
 
-	_, err = page.WaitForSelector("table.table tbody tr")
+	_, err = page.WaitForSelector(string(util.HeaderPageSize))
 	if err != nil {
 		return nil, err
 	}
 
-	rows, err := page.QuerySelectorAll("table.table tbody tr")
+	pageSize, err := page.QuerySelector(string(util.HeaderPageSize))
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err = pageSize.SelectOption(playwright.SelectOptionValues{Values: &[]string{"25"}}); err != nil {
+		return nil, err
+	}
+
+	_, err = page.WaitForSelector(string(util.HeaderTable))
+	if err != nil {
+		return nil, err
+	}
+
+	rows, err := page.QuerySelectorAll(string(util.HeaderTable))
 	if err != nil {
 		return nil, err
 	}
 
 	for _, row := range rows {
-		cells, err := row.QuerySelectorAll("td")
+		cells, err := row.QuerySelectorAll(string(util.HeaderTableData))
 		if err != nil {
-			fmt.Println("error retrieving cells:", err)
-			continue
+			return nil, err
 		}
 
 		var rowData model.Transaction
 		var cellData []string
-		for _, cell := range cells {
-			text, err := cell.TextContent()
+		for i := range cells {
+			text, err := cells[i].TextContent()
 			if err != nil {
-				fmt.Println("error reading cells:", err)
-				continue
+				return nil, err
 			}
-			text = strings.TrimSpace(text)
 			text = strings.Join(strings.Fields(text), " ")
+			util.CleanText(&text)
 			if len(text) == 0 {
 				continue
+			}
+			if slices.Contains([]int{7, 9}, i) {
+				el, err := cells[i].QuerySelector(`xpath=div/a[@class="js-clipboard link-secondary "]`)
+				if err != nil {
+					return nil, err
+				}
+				text, err = el.GetAttribute("data-clipboard-text")
+				if err != nil {
+					return nil, err
+				}
+				util.CleanText(&text)
 			}
 			cellData = append(cellData, text)
 		}
 
-		if len(cellData) != 14 {
-			fmt.Println("error: invalid number of columns")
-			continue
+		if len(cellData) != 12 {
+			return nil, errors.New("invalid cell data columns")
 		}
 
 		rowData = model.Transaction{
 			TransactionHash: cellData[0],
-			TxType:          cellData[1],
-			Method:          cellData[2],
-			Block:           cellData[3],
+			Method:          cellData[1],
+			Block:           cellData[2],
+
 			AgeTimestamp: func() time.Time {
-				t, _ := time.Parse(time.DateTime, cellData[4])
+				t, _ := time.Parse(time.DateTime, cellData[3])
 				return t
 			}(),
-			AgeDistanceFromQuery: cellData[5],
-			AgeMillis:            cellData[6],
-			From:                 cellData[7],
+			AgeDistanceFromQuery: cellData[4],
+			AgeMillis:            cellData[5],
+			From:                 cellData[6],
+			InOut:                cellData[7],
 			To:                   cellData[8],
-			Amount:               cellData[9],
-			Value:                cellData[10],
-			Asset:                cellData[11],
-			TxnFee:               cellData[12],
-			GasPrice:             cellData[13],
+			Value:                cellData[9],
+			TxnFee:               cellData[10],
+			GasPrice:             cellData[11],
 		}
-
 		transactions = append(transactions, rowData)
 	}
 
 	// Sort transactions by AgeTimestamp in descending order
-	sort.Slice(transactions, func(i, j int) bool {
-		return transactions[i].AgeTimestamp.After(transactions[j].AgeTimestamp)
-	})
+	//sort.Slice(transactions, func(i, j int) bool {
+	//	return transactions[i].AgeTimestamp.After(transactions[j].AgeTimestamp)
+	//})
 
 	return transactions, nil
 }
@@ -143,7 +163,6 @@ func SaveNew(database *gorm.DB, transactions []model.Transaction) ([]database2.T
 		semaphore <- struct{}{}
 
 		tx.TransactionHash = transactions[i].TransactionHash
-		tx.TxType = transactions[i].TxType
 		tx.Method = transactions[i].Method
 		tx.Block = transactions[i].Block
 		tx.AgeMillis = transactions[i].AgeMillis
@@ -152,9 +171,8 @@ func SaveNew(database *gorm.DB, transactions []model.Transaction) ([]database2.T
 		tx.GasPrice = transactions[i].GasPrice
 		tx.From = transactions[i].From
 		tx.To = transactions[i].To
-		tx.Amount = transactions[i].Amount
+		tx.InOut = transactions[i].InOut
 		tx.Value = transactions[i].Value
-		tx.Asset = transactions[i].Asset
 		tx.TxnFee = transactions[i].TxnFee
 
 		go func(tx database2.Transaction) {
