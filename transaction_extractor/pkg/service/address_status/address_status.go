@@ -35,10 +35,10 @@ func GetAddressStatus(browser playwright.Browser, address string) (addressStatus
 	//if err != nil {
 	//	return nil, err
 	//}
-
-	if err = cloudFlare.Check(); err != nil {
-		return nil, err
-	}
+	//
+	//if err = cloudFlare.Check(); err != nil {
+	//	return nil, err
+	//}
 
 	_, err = page.WaitForSelector(string(util.TableBody))
 	if err != nil {
