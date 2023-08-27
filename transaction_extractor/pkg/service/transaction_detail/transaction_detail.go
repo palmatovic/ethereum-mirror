@@ -1,27 +1,25 @@
 package transaction_detail
 
 import (
-	"encoding/json"
-	"ethereum-mirror/pkg/database"
-	"ethereum-mirror/pkg/model"
-	"ethereum-mirror/pkg/util"
 	"fmt"
 	"github.com/playwright-community/playwright-go"
 	log "github.com/sirupsen/logrus"
-	"os"
 	"strings"
 	"sync"
+	"transaction-extractor/pkg/database/transaction"
+	"transaction-extractor/pkg/model/transaction_detail"
+	"transaction-extractor/pkg/util"
 )
 
-func GetByTransaction(browser playwright.Browser, transactions []database.Transaction) ([]model.TransactionDetail, error) {
-	var details []model.TransactionDetail
+func GetByTransaction(browser playwright.Browser, transactions []transaction.Transaction) ([]transaction_detail.TransactionDetail, error) {
+	var details []transaction_detail.TransactionDetail
 
 	var wg sync.WaitGroup
 	sem := make(chan struct{}, 5)
 	for i := range transactions {
 		wg.Add(1)
 		sem <- struct{}{} // acquire a semaphore slot
-		go func(transaction database.Transaction) {
+		go func(transaction transaction.Transaction) {
 			defer wg.Done()
 			page, err := browser.NewPage()
 			if err != nil {
@@ -33,9 +31,9 @@ func GetByTransaction(browser playwright.Browser, transactions []database.Transa
 
 			page.SetDefaultTimeout(1000 * 40)
 
-			var detail model.TransactionDetail
+			var detail transaction_detail.TransactionDetail
 
-			_, err = page.Goto(fmt.Sprintf("https://etherscan.io/tx/%s", transaction.TransactionHash))
+			_, err = page.Goto(fmt.Sprintf("https://etherscan.io/tx/%s", transaction.TxHash))
 			if err != nil {
 				panic(err)
 			}
@@ -66,7 +64,7 @@ func GetByTransaction(browser playwright.Browser, transactions []database.Transa
 			if strings.ToLower(status) == "success" {
 				action, err := util.GetObjectByPage(page, util.TxAction)
 				if err != nil {
-					panic(err)
+					log.WithError(err).Panicf("error getting transaction action for transaction %v", transaction.TxHash)
 				}
 				detail.TransactionAction = action
 			}
@@ -83,7 +81,7 @@ func GetByTransaction(browser playwright.Browser, transactions []database.Transa
 				var errFail error
 				to, errFail = util.GetObjectByPage(page, util.TxInteractedWithToFail)
 				if errFail != nil {
-					log.WithError(err).Errorf("cannot get To for transaction %v", transaction.TransactionHash)
+					log.WithError(err).Errorf("cannot get To for transaction %v", transaction.TxHash)
 					panic(err)
 				}
 			}
@@ -95,17 +93,6 @@ func GetByTransaction(browser playwright.Browser, transactions []database.Transa
 		}(transactions[i])
 	}
 	wg.Wait()
-
-	b, err := json.Marshal(details)
-	if err != nil {
-		return nil, err
-	}
-	file, err := os.Create("detail.json")
-	if err != nil {
-		return nil, err
-	}
-	defer file.Close()
-	_, err = file.Write(b)
 
 	return details, nil
 }

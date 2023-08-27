@@ -2,9 +2,6 @@ package transaction
 
 import (
 	"errors"
-	database2 "ethereum-mirror/pkg/database"
-	"ethereum-mirror/pkg/model"
-	"ethereum-mirror/pkg/util"
 	"fmt"
 	"github.com/playwright-community/playwright-go"
 	log "github.com/sirupsen/logrus"
@@ -12,10 +9,14 @@ import (
 	"slices"
 	"strings"
 	"time"
+	database2 "transaction-extractor/pkg/database/scraping"
+	transaction2 "transaction-extractor/pkg/database/transaction"
+	"transaction-extractor/pkg/model/transaction"
+	"transaction-extractor/pkg/util"
 )
 
-// GetByLimitAndAddress returns a list of all transactions of ethereum address
-func GetByLimitAndAddress(browser playwright.Browser, address string) (transactions []model.Transaction, err error) {
+// GetByAddress returns a list of all transactions of ethereum address
+func GetByAddress(browser playwright.Browser, address string) (transactions []transaction.Transaction, err error) {
 
 	page, err := browser.NewPage()
 	if err != nil {
@@ -26,24 +27,24 @@ func GetByLimitAndAddress(browser playwright.Browser, address string) (transacti
 		_ = page.Close()
 	}()
 
-	_, err = page.Goto(fmt.Sprintf("https://etherscan.io/txs?a=%s", address))
+	_, err = page.Goto(fmt.Sprintf("https://etherscan.io/advanced-filter?fadd=%s&tadd=%s&p=3&fs=1", address, address))
 	if err != nil {
 		return nil, err
 	}
 
-	//_, err = page.WaitForSelector(string(util.HeaderPageSize))
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//pageSize, err := page.QuerySelector(string(util.HeaderPageSize))
-	//if err != nil {
-	//	return nil, err
-	//}
-	//
-	//if _, err = pageSize.SelectOption(playwright.SelectOptionValues{Values: &[]string{"25"}}); err != nil {
-	//	return nil, err
-	//}
+	_, err = page.WaitForSelector(string(util.HeaderPageSize))
+	if err != nil {
+		return nil, err
+	}
+
+	pageSize, err := page.QuerySelector(string(util.HeaderPageSize))
+	if err != nil {
+		return nil, err
+	}
+
+	if _, err = pageSize.SelectOption(playwright.SelectOptionValues{Values: &[]string{"100"}}); err != nil {
+		return nil, err
+	}
 
 	_, err = page.WaitForSelector(string(util.HeaderTable))
 	if err != nil {
@@ -61,7 +62,7 @@ func GetByLimitAndAddress(browser playwright.Browser, address string) (transacti
 			return nil, err
 		}
 
-		var rowData model.Transaction
+		var rowData transaction.Transaction
 		var cellData []string
 		for i := range cells {
 			text, err := cells[i].TextContent()
@@ -87,43 +88,50 @@ func GetByLimitAndAddress(browser playwright.Browser, address string) (transacti
 			cellData = append(cellData, text)
 		}
 
-		if len(cellData) != 12 {
+		if len(cellData) != 14 {
 			return nil, errors.New("invalid cell data columns")
 		}
 
-		rowData = model.Transaction{
-			TransactionHash: cellData[0],
-			Method:          cellData[1],
-			Block:           cellData[2],
-
-			AgeTimestamp: func() time.Time {
-				t, _ := time.Parse(time.DateTime, cellData[3])
-				return t
-			}(),
-			AgeDistanceFromQuery: cellData[4],
-			AgeMillis:            cellData[5],
-			From:                 cellData[6],
-			InOut:                cellData[7],
-			To:                   cellData[8],
-			Value:                cellData[9],
-			TxnFee:               cellData[10],
-			GasPrice:             cellData[11],
+		if slices.IndexFunc(transactions, func(t transaction.Transaction) bool {
+			return t.TxHash == cellData[0]
+		}) == -1 {
+			rowData = transaction.Transaction{
+				TxHash: cellData[0],
+				TxType: cellData[1],
+				Method: cellData[2],
+				Block:  cellData[3],
+				AgeTimestamp: func() time.Time {
+					t, _ := time.Parse(time.DateTime, cellData[4])
+					return t
+				}(),
+				AgeDistanceFromQuery: cellData[5],
+				AgeMillis:            cellData[6],
+				From:                 cellData[7],
+				//InOut:                cellData[7],
+				To:            cellData[8],
+				Amount:        cellData[9],
+				Value:         cellData[10],
+				Asset:         cellData[11],
+				TxnFee:        cellData[12],
+				GasPrice:      cellData[13],
+				WalletAddress: address,
+			}
+			transactions = append(transactions, rowData)
 		}
-		transactions = append(transactions, rowData)
 	}
-
 	return transactions, nil
 }
 
 // SaveNew saves only new transaction data in the database Transaction table
 // transactions input must be sorted by AgeTimestamp from recent to oldest
-func SaveNew(database *gorm.DB, walletAddress string, transactions []model.Transaction) ([]database2.Transaction, error) {
-	scraping := database2.Scraping{WalletAddress: walletAddress}
+func SaveNew(database *gorm.DB, transactions []transaction.Transaction) ([]transaction2.Transaction, error) {
+
+	scraping := database2.Scraping{}
 	if err := database.Create(&scraping).Error; err != nil {
 		return nil, err
 	}
 
-	var recentTransaction database2.Transaction
+	var recentTransaction transaction2.Transaction
 	from := 0
 	to := len(transactions)
 	if err := database.Order("AgeTimestamp DESC").First(&recentTransaction).Error; err != nil {
@@ -132,8 +140,8 @@ func SaveNew(database *gorm.DB, walletAddress string, transactions []model.Trans
 		}
 	} else {
 		// if it's present and its position is different from the first in the list, then take all elements until the block element
-		idx := slices.IndexFunc(transactions, func(t model.Transaction) bool {
-			return t.TransactionHash == recentTransaction.TransactionHash
+		idx := slices.IndexFunc(transactions, func(t transaction.Transaction) bool {
+			return t.TxHash == recentTransaction.TxHash
 		})
 		switch idx {
 		case -1:
@@ -146,36 +154,38 @@ func SaveNew(database *gorm.DB, walletAddress string, transactions []model.Trans
 		}
 	}
 
-	var dbTransactions []database2.Transaction
+	var dbTransactions []transaction2.Transaction
 	semaphore := make(chan struct{}, 10) // Create a semaphore with a capacity of 10
-	tx := database2.Transaction{
-		ScrapingId: scraping.ScrapingId,
-	}
+
 	for i := from; i < to; i++ {
 		// Acquire a permit from the semaphore
 		semaphore <- struct{}{}
-
-		tx.TransactionHash = transactions[i].TransactionHash
-		tx.Method = transactions[i].Method
-		tx.Block = transactions[i].Block
-		tx.AgeMillis = transactions[i].AgeMillis
-		tx.AgeTimestamp = transactions[i].AgeTimestamp
-		tx.AgeDistanceFromQuery = transactions[i].AgeDistanceFromQuery
-		tx.GasPrice = transactions[i].GasPrice
-		tx.From = transactions[i].From
-		tx.To = transactions[i].To
-		tx.InOut = transactions[i].InOut
-		tx.Value = transactions[i].Value
-		tx.TxnFee = transactions[i].TxnFee
-
-		go func(tx database2.Transaction) {
+		tx := transaction2.Transaction{
+			TxHash:               transactions[i].TxHash,
+			TxType:               transactions[i].TxType,
+			Method:               transactions[i].Method,
+			Block:                transactions[i].Block,
+			AgeTimestamp:         transactions[i].AgeTimestamp,
+			AgeDistanceFromQuery: transactions[i].AgeDistanceFromQuery,
+			AgeMillis:            transactions[i].AgeMillis,
+			From:                 transactions[i].From,
+			To:                   transactions[i].To,
+			Amount:               transactions[i].Amount,
+			Value:                transactions[i].Value,
+			Asset:                transactions[i].Asset,
+			TxnFee:               transactions[i].TxnFee,
+			GasPrice:             transactions[i].GasPrice,
+			ScrapingId:           scraping.ScrapingId,
+			WalletAddress:        transactions[i].WalletAddress,
+		}
+		go func(tx transaction2.Transaction) {
 			defer func() {
 				// Release the permit back to the semaphore
 				<-semaphore
 			}()
 
 			if err := database.Create(&tx).Error; err != nil {
-				log.WithError(err).Errorf("failed to save transaction %s", tx.TransactionHash)
+				log.WithError(err).Errorf("failed to save transaction %s", tx.TxHash)
 			} else {
 				dbTransactions = append(dbTransactions, tx)
 			}

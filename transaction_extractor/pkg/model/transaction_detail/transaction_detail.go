@@ -1,4 +1,4 @@
-package model
+package transaction_detail
 
 type TransactionDetail struct {
 	TransactionHash      string `json:"transaction_hash"`

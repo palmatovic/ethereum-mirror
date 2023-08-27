@@ -20,7 +20,7 @@ const (
 )
 
 const (
-	HeaderPageSize  Selector = "xpath=/html/body/main/section[3]/div[1]/form/div[3]/div/select"
+	HeaderPageSize  Selector = "xpath=/html/body/main/form/main/section[2]/div[3]/div[3]/div/select"
 	HeaderTable     Selector = "table.table tbody tr"
 	HeaderTableData Selector = "td"
 )
