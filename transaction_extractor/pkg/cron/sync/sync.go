@@ -1,12 +1,12 @@
 package sync
 
 import (
+	"errors"
 	"github.com/playwright-community/playwright-go"
 	"gorm.io/gorm"
-	database2 "transaction-extractor/pkg/database/transaction"
-	transaction2 "transaction-extractor/pkg/model/transaction"
-	"transaction-extractor/pkg/service/transaction"
-	"transaction-extractor/pkg/service/transaction_detail"
+	address_db "transaction-extractor/pkg/database/address"
+	address_status_model "transaction-extractor/pkg/model/address_status"
+	address_status_service "transaction-extractor/pkg/service/address_status"
 )
 
 type Env struct {
@@ -17,23 +17,28 @@ type Env struct {
 
 func (e *Env) SyncTransactions() (response interface{}, err error) {
 	for _, address := range e.Addresses {
-		var transactions []transaction2.Transaction
-		transactions, err = transaction.GetByAddress(e.Browser, address)
+		var addressRecord address_db.Address
+		if err = e.Database.Where("AddressId = ?", address).First(&addressRecord).Error; err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				addressRecord = address_db.Address{AddressId: address}
+				if errCreate := e.Database.Create(&addressRecord).Error; errCreate != nil {
+					return nil, errCreate
+				}
+			} else {
+				return nil, err
+			}
+		}
+		var addressStatuses []address_status_model.AddressStatus
+		addressStatuses, err = address_status_service.GetAddressStatus(e.Browser, address)
 		if err != nil {
 			return nil, err
 		}
-
-		if transactions != nil && len(transactions) > 0 {
-			var savedTransactions []database2.Transaction
-			if savedTransactions, err = transaction.SaveNew(e.Database, transactions); err != nil {
-				return nil, err
-			}
-			if savedTransactions != nil && len(savedTransactions) > 0 {
-				_, err = transaction_detail.GetByTransaction(e.Browser, savedTransactions)
-				if err != nil {
-					return nil, err
-				}
-			}
+		if len(addressStatuses) > 0 {
+			//var savedAddressStatuses []address_status_db.AddressStatus
+			//savedAddressStatuses, err = address_status_service.SaveNewAddressStatus(, addressStatuses)
+			//if err != nil {
+			//	return nil, err
+			//}
 		}
 	}
 	return nil, nil
