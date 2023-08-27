@@ -26,15 +26,15 @@ func (e *Env) ExecuteOrdres() (response interface{}, err error) {
 	}
 
 	if len(cryptoTransactions) > 0 {
-		for _, ct := range cryptoTransactions {
-			// prendi il saldo del wallet da cui parte la transazione,
-			// calcola la percentuale
+		// for _, ct := range cryptoTransactions {
+		// 	// prendi il saldo del wallet da cui parte la transazione,
+		// 	// calcola la percentuale
 
-			// calcola il proprio saldo
-			// calcola la percentuale riportata al proprio saldo
+		// 	// calcola il proprio saldo
+		// 	// calcola la percentuale riportata al proprio saldo
 
-			// verifica che rispetti le
-		}
+		// 	// verifica che rispetti le
+		// }
 	}
 
 	// genera il corrispettivo ordine
