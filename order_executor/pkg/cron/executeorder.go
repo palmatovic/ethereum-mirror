@@ -7,11 +7,13 @@ import (
 )
 
 type Env struct {
-	MinPercOrderThreshold int
-	MaxPercOrderThreshold int
-	SetMaxPercThreshold   bool
-	SetMinPercThreshold   bool
-	Database              *gorm.DB
+	MinPercOrderThreshold        int
+	MaxPercOrderThreshold        int
+	SetMaxPercThreshold          bool
+	SetMinPercThreshold          bool
+	OrderTimeExpirationThreshold int
+	MaxPriceRangePerc            float32
+	Database                     *gorm.DB
 }
 
 func (e *Env) ExecuteOrdres() (response interface{}, err error) {
@@ -27,6 +29,9 @@ func (e *Env) ExecuteOrdres() (response interface{}, err error) {
 
 	if len(cryptoTransactions) > 0 {
 		// for _, ct := range cryptoTransactions {
+
+		// 	// verifica che la transazione non sia scaduta
+		// 	ct.
 		// 	// prendi il saldo del wallet da cui parte la transazione,
 		// 	// calcola la percentuale
 
