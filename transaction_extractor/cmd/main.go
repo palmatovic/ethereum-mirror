@@ -10,8 +10,8 @@ import (
 	syncronize "sync"
 	"time"
 	"transaction-extractor/pkg/cron/sync"
-	"transaction-extractor/pkg/database/scraping"
-	"transaction-extractor/pkg/database/transaction"
+	"transaction-extractor/pkg/database/address"
+	"transaction-extractor/pkg/database/address_status"
 )
 
 // Environment
@@ -35,12 +35,12 @@ func main() {
 	}
 
 	// Open a connection to the SQLite database
-	if db, err = gorm.Open(sqlite.Open("scraping.db"), &gorm.Config{}); err != nil {
+	if db, err = gorm.Open(sqlite.Open("wallet.db"), &gorm.Config{}); err != nil {
 		log.WithError(err).Fatalln("error during database connection")
 	}
 
 	// Perform automatic database schema migration
-	err = db.AutoMigrate(&transaction.Transaction{}, &scraping.Scraping{})
+	err = db.AutoMigrate(&address.Address{}, &address_status.AddressStatus{})
 	if err != nil {
 		log.WithError(err).Fatalln("error during migration of database")
 	}
