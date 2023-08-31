@@ -16,10 +16,12 @@ import (
 // Environment
 // Defines the structure for holding environment variables
 type Environment struct {
-	MinPercOrderThreshold int  `env:"MINPERCORDERTHRESHOLD,required"` // 0x905615DE62BE9B1a6582843E8ceDeDB6BDA42367
-	MaxPercOrderThreshold int  `env:"MAXPERCORDERTHRESHOLD,required"`
-	SetMaxPercThreshold   bool `env:"SETMAXPERCTHRESHOLD,required"`
-	SetMinPercThreshold   bool `env:"SETMINPERCTHRESHOLD,required"`
+	MinPercOrderThreshold        int     `env:"MINPERCORDERTHRESHOLD,required"`
+	MaxPercOrderThreshold        int     `env:"MAXPERCORDERTHRESHOLD,required"`
+	SetMaxPercThreshold          bool    `env:"SETMAXPERCTHRESHOLD,required"`
+	SetMinPercThreshold          bool    `env:"SETMINPERCTHRESHOLD,required"`
+	OrderTimeExpirationThreshold int     `env:"ORDERTIMEEXPIRATIONTHRESHOLD,required"`
+	MaxPriceRangePerc            float32 `env:"MAXPRICERANGEPERC,required"`
 }
 
 func main() {
@@ -48,11 +50,13 @@ func main() {
 
 	// Create an instance of the cron environment
 	c := sync.Env{
-		Database:              db,
-		MinPercOrderThreshold: e.MinPercOrderThreshold,
-		MaxPercOrderThreshold: e.MaxPercOrderThreshold,
-		SetMaxPercThreshold:   e.SetMaxPercThreshold,
-		SetMinPercThreshold:   e.SetMinPercThreshold,
+		Database:                     db,
+		MinPercOrderThreshold:        e.MinPercOrderThreshold,
+		MaxPercOrderThreshold:        e.MaxPercOrderThreshold,
+		SetMaxPercThreshold:          e.SetMaxPercThreshold,
+		SetMinPercThreshold:          e.SetMinPercThreshold,
+		OrderTimeExpirationThreshold: e.OrderTimeExpirationThreshold,
+		MaxPriceRangePerc:            e.MaxPriceRangePerc,
 	}
 
 	// Create a new cron scheduler
