@@ -8,6 +8,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/go-co-op/gocron v1.32.1 h1:h+StA6Qzlv+ImlCaLfA26rLN9eS/l4sO7oWmPUbRVIY=
 github.com/go-co-op/gocron v1.32.1/go.mod h1:UGz2oYvVS6PsqlwuOdo5L1Djsg/cQjxJ6T5ntkhp9Bg=
+github.com/go-co-op/gocron v1.33.1 h1:wjX+Dg6Ae29a/f9BSQjY1Rl+jflTpW9aDyMqseCj78c=
+github.com/go-co-op/gocron v1.33.1/go.mod h1:NLi+bkm4rRSy1F8U7iacZOz0xPseMoIOnvabGoSe/no=
 github.com/go-jose/go-jose/v3 v3.0.0 h1:s6rrhirfEP/CGIoc6p+PZAeogN2SxKav6Wp7+dyMWVo=
 github.com/go-jose/go-jose/v3 v3.0.0/go.mod h1:RNkWWRld676jZEYoV3+XK8L2ZnNSvIsxFMht0mSX+u8=
 github.com/go-stack/stack v1.8.1 h1:ntEHSVwIt7PNXNpgPmVfMrNhLtgjlmnZha2kOpuRiDw=
@@ -32,6 +34,8 @@ github.com/mattn/go-sqlite3 v1.14.17/go.mod h1:2eHXhiwb8IkHr+BDWZGa96P6+rkvnG63S
 github.com/pkg/diff v0.0.0-20210226163009-20ebb0f2a09e/go.mod h1:pJLUxLENpZxwdsKMEsNbx1VGcRFpLqf3715MtcvvzbA=
 github.com/playwright-community/playwright-go v0.3500.0 h1:pWUwUa+JDibO3IOOjWsZ6d0gVehsLVCt6ZpJitePJXM=
 github.com/playwright-community/playwright-go v0.3500.0/go.mod h1:5BciqynTw2vyGwuMfhqfsc7hktCoZvoYQ+TBHRxvUME=
+github.com/playwright-community/playwright-go v0.3700.0 h1:o24or0GramrndTYc1JbVmtfft1SVLjRGYL/zTx0AzyA=
+github.com/playwright-community/playwright-go v0.3700.0/go.mod h1:mbNzMqt04IVRdhVfXWqmCxd81gCdL3BA5hj6/pVAIqM=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/robfig/cron/v3 v3.0.1 h1:WdRxkvbJztn8LMz/QEvLN5sBU+xKpSqwwUO1Pjr4qDs=

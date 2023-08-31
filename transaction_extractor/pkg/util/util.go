@@ -8,7 +8,7 @@ import (
 type Selector string
 
 const (
-	CloudFlare        Selector = `xpath=//input[@type="checkbox"]`
+	CloudFlare        Selector = `xpath=/html/body/table/tbody/tr/td/div/div[1]/table/tbody/tr/td[1]/div[1]/div/label/input`
 	TableBody         Selector = "xpath=/html/body/main/div/div[2]/div[2]/div/div/div/table/tbody"
 	RelativeTableRows Selector = "xpath=/tr"
 	RelativeTableData Selector = "xpath=/td"

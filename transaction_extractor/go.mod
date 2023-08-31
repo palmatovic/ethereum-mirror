@@ -1,11 +1,11 @@
 module transaction-extractor
 
-go 1.21.0
+go 1.21
 
 require (
 	github.com/caarlos0/env/v6 v6.10.1
-	github.com/go-co-op/gocron v1.32.1
-	github.com/playwright-community/playwright-go v0.3500.0
+	github.com/go-co-op/gocron v1.33.1
+	github.com/playwright-community/playwright-go v0.3700.0
 	github.com/sirupsen/logrus v1.9.3
 	gorm.io/driver/sqlite v1.5.3
 	gorm.io/gorm v1.25.4

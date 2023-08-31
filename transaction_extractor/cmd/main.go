@@ -59,9 +59,11 @@ func main() {
 		log.Fatalln("error during Playwright installation:", err)
 	}
 
+	executablePath := "/usr/bin/brave-browser"
 	// Launch Firefox browser
-	browser, err := pw.Firefox.Launch(playwright.BrowserTypeLaunchOptions{
-		Headless: playwright.Bool(false),
+	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
+		ExecutablePath: &executablePath,
+		Headless:       playwright.Bool(false),
 	})
 	if err != nil {
 		log.Fatalln("error during browser launch:", err)
