@@ -6,11 +6,14 @@ import (
 	"fmt"
 	"github.com/playwright-community/playwright-go"
 	log "github.com/sirupsen/logrus"
+	"gorm.io/gorm"
 	"io"
 	"math/big"
 	"net/http"
+	"regexp"
 	"strconv"
 	"sync"
+	address_status_db "transaction-extractor/pkg/database/address_status"
 	"transaction-extractor/pkg/model/address_status"
 	"transaction-extractor/pkg/util"
 )
@@ -33,7 +36,6 @@ type GetTokenBalanceResponse struct {
 
 // GetAddressStatus returns a list of all token balance by address_status
 func GetAddressStatus(browser playwright.Browser, address string) (addressStatuses []address_status.AddressStatus, err error) {
-
 	// Alchemy URL
 	const baseURL = "https://eth-mainnet.g.alchemy.com/v2/owUCVigVvnHA63o0C6mh3yrf3jxMkV7b"
 
@@ -83,8 +85,6 @@ func GetAddressStatus(browser playwright.Browser, address string) (addressStatus
 		mu                   sync.Mutex
 	)
 
-	var ftbs []*FullTokenBalance
-
 	for i := range tokenBalances.Result.TokenBalances {
 		if tokenBalances.Result.TokenBalances[i].TokenBalance != "0x0000000000000000000000000000000000000000000000000000000000000000" {
 			token := tokenBalances.Result.TokenBalances[i]
@@ -95,12 +95,12 @@ func GetAddressStatus(browser playwright.Browser, address string) (addressStatus
 			go func(token TokenBalance) {
 				defer wg.Done()
 				defer func() { <-semaphore }() // Rilascia il semaforo al termine
-				ftb, err := getInfo(browser, token)
+				addressStatus, err := getInfo(browser, token)
 				if err != nil {
 					log.WithError(err).Error("failed to get token info")
 				} else {
 					mu.Lock()
-					ftbs = append(ftbs, ftb)
+					addressStatuses = append(addressStatuses, *addressStatus)
 					mu.Unlock()
 				}
 			}(token)
@@ -108,11 +108,10 @@ func GetAddressStatus(browser playwright.Browser, address string) (addressStatus
 	}
 	wg.Wait()
 
-	// ftbs è pronto
-	return nil, nil
+	return addressStatuses, nil
 }
 
-func getInfo(browser playwright.Browser, balance TokenBalance) (*FullTokenBalance, error) {
+func getInfo(browser playwright.Browser, balance TokenBalance) (*address_status.AddressStatus, error) {
 
 	page, err := browser.NewPage()
 	if err != nil {
@@ -150,16 +149,33 @@ func getInfo(browser playwright.Browser, balance TokenBalance) (*FullTokenBalanc
 	floatValue.Quo(floatValue, scale)
 	approxValue := floatValue.Text('f', decimal)
 
-	ftb := FullTokenBalance{
+	ftb := address_status.AddressStatus{
 		Contract: balance.ContractAddress,
 		Name:     tokenName,
 		Amount:   func() float64 { s, _ := strconv.ParseFloat(approxValue, 64); return s }(),
+		Symbol: func() string {
+			re := regexp.MustCompile(`\((.*?)\)`)
+			match := re.FindStringSubmatch(tokenName)
+			content := match[1]
+			return content
+		}(),
 	}
 	return &ftb, nil
 }
 
-type FullTokenBalance struct {
-	Contract string  `json:"contract"`
-	Name     string  `json:"name"`
-	Amount   float64 `json:"amount"`
+func SaveNewAddressStatus(db *gorm.DB, address string, addressStatuses []address_status.AddressStatus) ([]address_status_db.AddressStatus, error) {
+	var addressStatusesDb []address_status_db.AddressStatus
+	for i := range addressStatuses {
+		addressStatusesDb = append(addressStatusesDb, address_status_db.AddressStatus{
+			AddressId:            address,
+			TokenName:            addressStatuses[i].Name,
+			TokenSymbol:          addressStatuses[i].Symbol,
+			TokenContractAddress: addressStatuses[i].Contract,
+			TokenAmount:          addressStatuses[i].Amount,
+		})
+	}
+	if err := db.Create(&addressStatusesDb).Error; err != nil {
+		return nil, err
+	}
+	return addressStatusesDb, nil
 }
