@@ -11,8 +11,8 @@ import (
 	"io"
 	"math/big"
 	"net/http"
-	"regexp"
 	"strconv"
+	"strings"
 	"sync"
 	address_status_db "transaction-extractor/pkg/database/address_status"
 	"transaction-extractor/pkg/model/address_status"
@@ -161,9 +161,9 @@ func getInfo(browser playwright.Browser, balance TokenBalance) (*address_status.
 		Amount:    func() float64 { s, _ := strconv.ParseFloat(approxValue, 64); return s }(),
 		AmountHex: balance.TokenBalance,
 		Symbol: func() string {
-			re := regexp.MustCompile(`\((.*?)\)`)
-			match := re.FindStringSubmatch(tokenName)
-			content := match[1]
+			start := strings.Index(tokenName, "(")
+			end := strings.Index(tokenName, ")")
+			content := tokenName[start+1 : end]
 			return content
 		}(),
 	}
