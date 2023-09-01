@@ -98,3 +98,5 @@ func main() {
 	// This point is reached after the scheduler stops (due to blocking nature)
 	log.Infoln("scheduler stopped, shutting down")
 }
+
+// token sniffer https://gopluslabs.io/token-security/1/:contractaddress
