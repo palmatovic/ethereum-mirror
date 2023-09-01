@@ -178,7 +178,7 @@ func SaveNewAddressStatus(db *gorm.DB, address string, addressStatuses []address
 	for j := range addressStatusesDb {
 		var asd address_status_db.AddressStatus
 		var err error
-		err = db.Where("AddressId = ? AND TokenContractAddress = ?", address, addressStatusesDb[j].TokenContractAddress).First(&asd)
+		err = db.Where("AddressId = ? AND TokenContractAddress = ?", address, addressStatusesDb[j].TokenContractAddress).First(&asd).Error
 		if err != nil {
 			if errors.Is(gorm.ErrRecordNotFound, err) {
 				if err = db.Create(&addressStatusesDb[j]).Error; err != nil {
