@@ -19,6 +19,7 @@ import (
 type Environment struct {
 	Addresses          []string `env:"ADDRESSES,required"` // 0x905615DE62BE9B1a6582843E8ceDeDB6BDA42367
 	PlaywrightHeadLess bool     `env:"PLAYWRIGHT_HEADLESS,required"`
+	AlchemyApiKey      string   `env:"ALCHEMY_API_KEY,required"` // owUCVigVvnHA63o0C6mh3yrf3jxMkV7b
 }
 
 func main() {
@@ -63,14 +64,14 @@ func main() {
 	// Launch Firefox browser
 	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
 		ExecutablePath: &executablePath,
-		Headless:       playwright.Bool(false),
+		Headless:       playwright.Bool(e.PlaywrightHeadLess),
 	})
 	if err != nil {
 		log.Fatalln("error during browser launch:", err)
 	}
 
 	// Create an instance of the cron environment
-	c := sync.Env{Browser: browser, Database: db, Addresses: e.Addresses}
+	c := sync.Env{Browser: browser, Database: db, Addresses: e.Addresses, AlchemyApiKey: e.AlchemyApiKey}
 
 	// Create a new cron scheduler
 	s := gocron.NewScheduler(time.Local)

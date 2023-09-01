@@ -12,8 +12,9 @@ import (
 
 type Env struct {
 	playwright.Browser
-	Database  *gorm.DB
-	Addresses []string
+	Database      *gorm.DB
+	Addresses     []string
+	AlchemyApiKey string
 }
 
 func (e *Env) SyncTransactions() (response interface{}, err error) {
@@ -30,13 +31,13 @@ func (e *Env) SyncTransactions() (response interface{}, err error) {
 			}
 		}
 		var addressStatuses []address_status_model.AddressStatus
-		addressStatuses, err = address_status_service.GetAddressStatus(e.Browser, address)
+		addressStatuses, err = address_status_service.GetAddressStatus(e.Database, e.Browser, address, e.AlchemyApiKey)
 		if err != nil {
 			return nil, err
 		}
 		if len(addressStatuses) > 0 {
 			var savedAddressStatuses []address_status_db.AddressStatus
-			savedAddressStatuses, err = address_status_service.SaveNewAddressStatus(e.Database, address, addressStatuses)
+			savedAddressStatuses, err = address_status_service.UpsertAddressStatus(e.Database, address, addressStatuses)
 			if err != nil {
 				return nil, err
 			}

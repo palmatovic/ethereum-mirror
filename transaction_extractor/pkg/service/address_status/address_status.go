@@ -36,9 +36,9 @@ type GetTokenBalanceResponse struct {
 }
 
 // GetAddressStatus returns a list of all token balance by address_status
-func GetAddressStatus(browser playwright.Browser, address string) (addressStatuses []address_status.AddressStatus, err error) {
+func GetAddressStatus(db *gorm.DB, browser playwright.Browser, address string, alchemyApiKey string) (addressStatuses []address_status.AddressStatus, err error) {
 	// Alchemy URL
-	const baseURL = "https://eth-mainnet.g.alchemy.com/v2/owUCVigVvnHA63o0C6mh3yrf3jxMkV7b"
+	var baseURL = fmt.Sprintf("https://eth-mainnet.g.alchemy.com/v2/%s", alchemyApiKey)
 
 	data := map[string]interface{}{
 		"jsonrpc": "2.0",
@@ -73,8 +73,6 @@ func GetAddressStatus(browser playwright.Browser, address string) (addressStatus
 	}
 
 	responseData, _ := io.ReadAll(response.Body)
-	var result map[string]interface{}
-	_ = json.Unmarshal(responseData, &result)
 
 	var tokenBalances GetTokenBalanceResponse
 	_ = json.Unmarshal(responseData, &tokenBalances)
@@ -89,20 +87,27 @@ func GetAddressStatus(browser playwright.Browser, address string) (addressStatus
 	for i := range tokenBalances.Result.TokenBalances {
 		if tokenBalances.Result.TokenBalances[i].TokenBalance != "0x0000000000000000000000000000000000000000000000000000000000000000" {
 			token := tokenBalances.Result.TokenBalances[i]
-
-			// Acquisisci un semaforo prima di avviare una nuova goroutine
 			semaphore <- struct{}{}
 			wg.Add(1)
-			go func(token TokenBalance) {
+			go func(t TokenBalance) {
 				defer wg.Done()
-				defer func() { <-semaphore }() // Rilascia il semaforo al termine
-				addressStatus, err := getInfo(browser, token)
+				defer func() { <-semaphore }()
+				var addressStatusDb address_status_db.AddressStatus
+				err = db.Where("AddressId = ? AND TokenContractAddress = ?", address, token.ContractAddress).First(&addressStatusDb).Error
 				if err != nil {
-					log.WithError(err).Error("failed to get token info")
-				} else {
-					mu.Lock()
-					addressStatuses = append(addressStatuses, *addressStatus)
-					mu.Unlock()
+					if !errors.Is(err, gorm.ErrRecordNotFound) {
+						return
+					}
+				}
+				if addressStatusDb.TokenAmountHex != t.TokenBalance {
+					addressStatus, err := getInfo(browser, t)
+					if err != nil {
+						log.WithError(err).Error("failed to get token info")
+					} else {
+						mu.Lock()
+						addressStatuses = append(addressStatuses, *addressStatus)
+						mu.Unlock()
+					}
 				}
 			}(token)
 		}
@@ -151,9 +156,10 @@ func getInfo(browser playwright.Browser, balance TokenBalance) (*address_status.
 	approxValue := floatValue.Text('f', decimal)
 
 	ftb := address_status.AddressStatus{
-		Contract: balance.ContractAddress,
-		Name:     tokenName,
-		Amount:   func() float64 { s, _ := strconv.ParseFloat(approxValue, 64); return s }(),
+		Contract:  balance.ContractAddress,
+		Name:      tokenName,
+		Amount:    func() float64 { s, _ := strconv.ParseFloat(approxValue, 64); return s }(),
+		AmountHex: balance.TokenBalance,
 		Symbol: func() string {
 			re := regexp.MustCompile(`\((.*?)\)`)
 			match := re.FindStringSubmatch(tokenName)
@@ -164,15 +170,16 @@ func getInfo(browser playwright.Browser, balance TokenBalance) (*address_status.
 	return &ftb, nil
 }
 
-func SaveNewAddressStatus(db *gorm.DB, address string, addressStatuses []address_status.AddressStatus) ([]address_status_db.AddressStatus, error) {
+func UpsertAddressStatus(db *gorm.DB, address string, addressStatuses []address_status.AddressStatus) ([]address_status_db.AddressStatus, error) {
 	var addressStatusesDb []address_status_db.AddressStatus
 	for i := range addressStatuses {
 		addressStatusesDb = append(addressStatusesDb, address_status_db.AddressStatus{
 			AddressId:            address,
+			TokenContractAddress: addressStatuses[i].Contract,
 			TokenName:            addressStatuses[i].Name,
 			TokenSymbol:          addressStatuses[i].Symbol,
-			TokenContractAddress: addressStatuses[i].Contract,
 			TokenAmount:          addressStatuses[i].Amount,
+			TokenAmountHex:       addressStatuses[i].AmountHex,
 		})
 	}
 	for j := range addressStatusesDb {
@@ -184,19 +191,16 @@ func SaveNewAddressStatus(db *gorm.DB, address string, addressStatuses []address
 				if err = db.Create(&addressStatusesDb[j]).Error; err != nil {
 					return nil, err
 				}
-				// aggiorna la tabella delle transazioni che hanno portato a quel token amount x il token contract address e l'addressId (etherscan puoi filtrare per contratto e holder wallet) (che non esiste)
+				// inserire nella la tabella delle transazioni che hanno portato a quel token amount x il token contract address e l'addressId (etherscan puoi filtrare per contratto e holder wallet) (che non esiste)
 
 			} else {
 				return nil, err
 			}
 		} else {
 			if asd.TokenAmount != addressStatusesDb[j].TokenAmount {
-				// aggiorna il token amount e aggiorna la tabella delle transazioni (che non esiste vedi sopra)
+				// aggiorna la tabelle address_status con il nuovo token amont e aggiorna la tabella delle transazioni con solo le transazioni nuove (che non esiste vedi sopra)
 			}
 		}
-	}
-	if err := db.Create(&addressStatusesDb).Error; err != nil {
-		return nil, err
 	}
 	return addressStatusesDb, nil
 }
