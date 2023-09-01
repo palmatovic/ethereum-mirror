@@ -3,6 +3,7 @@ package address_status
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"github.com/playwright-community/playwright-go"
 	log "github.com/sirupsen/logrus"
@@ -173,6 +174,24 @@ func SaveNewAddressStatus(db *gorm.DB, address string, addressStatuses []address
 			TokenContractAddress: addressStatuses[i].Contract,
 			TokenAmount:          addressStatuses[i].Amount,
 		})
+	}
+	for j := range addressStatusesDb {
+		var asd address_status_db.AddressStatus
+		var err error
+		err = db.Where("AddressId = ? AND TokenContractAddress = ?", address, addressStatusesDb[j].TokenContractAddress).First(&asd)
+		if err != nil {
+			if errors.Is(gorm.ErrRecordNotFound, err) {
+				if err = db.Create(&addressStatusesDb[j]).Error; err != nil {
+					return nil, err
+				}
+			} else {
+				return nil, err
+			}
+		} else {
+			if asd.TokenAmount != addressStatusesDb[j].TokenAmount {
+				// aggiorna
+			}
+		}
 	}
 	if err := db.Create(&addressStatusesDb).Error; err != nil {
 		return nil, err
