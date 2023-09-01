@@ -184,12 +184,14 @@ func SaveNewAddressStatus(db *gorm.DB, address string, addressStatuses []address
 				if err = db.Create(&addressStatusesDb[j]).Error; err != nil {
 					return nil, err
 				}
+				// aggiorna la tabella delle transazioni che hanno portato a quel token amount x il token contract address e l'addressId (etherscan puoi filtrare per contratto e holder wallet) (che non esiste)
+
 			} else {
 				return nil, err
 			}
 		} else {
 			if asd.TokenAmount != addressStatusesDb[j].TokenAmount {
-				// aggiorna
+				// aggiorna il token amount e aggiorna la tabella delle transazioni (che non esiste vedi sopra)
 			}
 		}
 	}
