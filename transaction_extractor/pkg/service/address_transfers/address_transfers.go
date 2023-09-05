@@ -3,6 +3,7 @@ package address_transfers
 import (
 	"github.com/playwright-community/playwright-go"
 	"gorm.io/gorm"
+	"strings"
 	"time"
 	address_status_db "transaction-extractor/pkg/database/address_status"
 	"transaction-extractor/pkg/model/address_transfers"
@@ -27,8 +28,8 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, address_status addres
 
 	page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[3]/div/div/div[2]/div[1]/div/div")
 
-	pulsanteApertura := page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[2]/div[5]")
-	err = pulsanteApertura.Click()
+	expandTable := page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[2]/div[5]")
+	err = expandTable.Click()
 	if err != nil {
 		return
 	}
@@ -76,8 +77,8 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, address_status addres
 			Amount:        "",
 			Total:         "",
 			AgeTimestamp:  time.Time{},
-			Asset:         "",
-			WalletAddress: "",
+			Asset:         address_status.TokenContractAddress,
+			WalletAddress: address,
 			CreatedAt:     time.Time{},
 			ProcessedAt:   time.Time{},
 		}
@@ -95,6 +96,7 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, address_status addres
 				if err != nil {
 					return
 				}
+				at.Price = strings.TrimSpace(at.Price[1:])
 			}
 
 			if colNum == 2 {
@@ -123,11 +125,11 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, address_status addres
 					return
 				}
 				print(ageTimestamp)
-				/*
-					at.AgeTimestamp, err = time.Parse("2023-08-17 23:02:59", ageTimestamp)
-					if err != nil {
-						return
-					}*/
+
+				at.AgeTimestamp, err = time.Parse("2006-01-02 15:04:05", ageTimestamp)
+				if err != nil {
+					return
+				}
 			}
 
 		}
