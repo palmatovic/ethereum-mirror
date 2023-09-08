@@ -12,6 +12,7 @@ import (
 	"transaction-extractor/pkg/cron/sync"
 	"transaction-extractor/pkg/database/address"
 	"transaction-extractor/pkg/database/address_status"
+	"transaction-extractor/pkg/database/address_transfers"
 )
 
 // Environment
@@ -41,7 +42,7 @@ func main() {
 	}
 
 	// Perform automatic database schema migration
-	err = db.AutoMigrate(&address.Address{}, &address_status.AddressStatus{})
+	err = db.AutoMigrate(&address.Address{}, &address_status.AddressStatus{}, &address_transfers.Transaction{})
 	if err != nil {
 		log.WithError(err).Fatalln("error during migration of database")
 	}

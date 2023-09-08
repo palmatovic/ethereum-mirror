@@ -1,74 +1,77 @@
 package address_transfers
 
 import (
+	"errors"
+	"fmt"
 	"github.com/playwright-community/playwright-go"
 	"gorm.io/gorm"
 	"strings"
 	"time"
 	address_status_db "transaction-extractor/pkg/database/address_status"
+	address_transfers_db "transaction-extractor/pkg/database/address_transfers"
 	"transaction-extractor/pkg/model/address_transfers"
 )
 
-func GetAddressTokenTransfers(db *gorm.DB, address string, address_status address_status_db.AddressStatus, browser playwright.Browser) {
-	page, err := browser.NewPage()
+func GetAddressTokenTransfers(db *gorm.DB, address string, address_status address_status_db.AddressStatus, browser playwright.Browser) (ats []address_transfers.AddressTransaction, err error) {
+	var page playwright.Page
+	page, err = browser.NewPage()
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	_, err = page.Goto("https://www.defined.fi/eth/" + address_status.TokenContractAddress)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	err = page.WaitForLoadState()
 	if err != nil {
-		return
+		return nil, err
 	}
-	page.WaitForTimeout(2000)
 
 	//page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[3]/div/div/div[2]/div[1]/div/div")
 
+	page.WaitForTimeout(2000)
 	expandTable := page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[2]/div[5]")
 	err = expandTable.Click()
 	if err != nil {
-		return
+		return nil, err
 	}
-
 	page.WaitForTimeout(2000)
 
 	filterButton := page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[3]/div/div/div[1]/div[7]/span/button")
 	err = filterButton.Click()
 	if err != nil {
-		return
+		return nil, err
 	}
-	page.WaitForTimeout(2000)
+	page.WaitForTimeout(5000)
 
 	inputFiter := page.Locator("xpath=//html/body/div[7]/div[3]/form/div[1]/div/input")
 	err = inputFiter.Fill(address)
 	if err != nil {
-		return
+		return nil, err
 	}
-
 	page.WaitForTimeout(2000)
 
 	applyFilter := page.Locator("xpath=//html/body/div[7]/div[3]/form/div[2]/button[2]")
 	err = applyFilter.Click()
 	if err != nil {
-		return
+		return nil, err
 	}
+	page.WaitForTimeout(2000)
 
 	tableXpath := "xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[3]/div/div/div[2]/div[1]/div/div"
 
 	table := page.Locator(tableXpath)
 	rows, err := table.Locator("xpath=/div").All()
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	for _, r := range rows {
 		cols, err := r.Locator("xpath=/div/div").All()
 		if err != nil {
-			return
+			return nil, err
 		}
 
 		at := address_transfers.AddressTransaction{
@@ -87,14 +90,14 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, address_status addres
 			if colNum == 0 {
 				at.TxType, err = cols[colNum].InnerText()
 				if err != nil {
-					return
+					return nil, err
 				}
 			}
 
 			if colNum == 1 {
 				at.Price, err = cols[colNum].InnerText()
 				if err != nil {
-					return
+					return nil, err
 				}
 				at.Price = strings.TrimSpace(at.Price[1:])
 			}
@@ -102,14 +105,14 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, address_status addres
 			if colNum == 2 {
 				at.Amount, err = cols[colNum].InnerText()
 				if err != nil {
-					return
+					return nil, err
 				}
 			}
 
 			if colNum == 3 {
 				at.Total, err = cols[colNum].InnerText()
 				if err != nil {
-					return
+					return nil, err
 				}
 			}
 
@@ -118,23 +121,26 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, address_status addres
 			}
 
 			if colNum == 5 {
+				page.WaitForTimeout(2000)
+
 				var colSpan = cols[colNum].Locator("xpath=/span")
 
 				ageTimestamp, err := colSpan.GetAttribute("aria-label")
 				if err != nil {
-					return
+					return nil, err
 				}
 				print(ageTimestamp)
 
 				at.AgeTimestamp, err = time.Parse("2006-01-02 15:04:05", ageTimestamp)
 				if err != nil {
-					return
+					return nil, err
 				}
 			}
 
 		}
+		ats = append(ats, at)
 	}
-
+	return ats, nil
 }
 
 func ScamCheck(tokenAddress string, browser playwright.Browser) (bool, error) {
@@ -166,7 +172,7 @@ func ScamCheck(tokenAddress string, browser playwright.Browser) (bool, error) {
 	}
 	println(attentionItemsNum)
 
-	err := page.Close()
+	err = page.Close()
 	if err != nil {
 		return false, err
 	}
@@ -175,4 +181,53 @@ func ScamCheck(tokenAddress string, browser playwright.Browser) (bool, error) {
 	} else {
 		return false, err
 	}
+}
+
+func UpsertAddressTransfers(db *gorm.DB, addressTransfers []address_transfers.AddressTransaction) ([]address_transfers_db.Transaction, error) {
+	var addressTransfersDb []address_transfers_db.Transaction
+	for i := range addressTransfers {
+		fmt.Println(addressTransfers[i])
+		addressTransfersDb = append(addressTransfersDb, address_transfers_db.Transaction{
+			TxType:        addressTransfers[i].TxType,
+			Price:         addressTransfers[i].Price,
+			Amount:        addressTransfers[i].Amount,
+			Total:         addressTransfers[i].Total,
+			AgeTimestamp:  addressTransfers[i].AgeTimestamp,
+			Asset:         addressTransfers[i].Asset,
+			WalletAddress: addressTransfers[i].WalletAddress,
+		})
+	}
+	for j := range addressTransfersDb {
+		//var asd address_transfers_db.Transaction
+		var err error
+		//grosso problema, mi devo tenere un univoco della transazione e qua non ho il transaction hash...
+
+		if errors.Is(gorm.ErrRecordNotFound, err) {
+			if err = db.Create(&addressTransfersDb[j]).Error; err != nil {
+				return nil, err
+			}
+			// inserire nella la tabella delle transazioni che hanno portato a quel token amount x il token contract address e l'addressId (etherscan puoi filtrare per contratto e holder wallet) (che non esiste)
+
+		} else {
+			return nil, err
+		}
+
+		//err = db.Where("AddressId = ? AND TokenContractAddress = ?", address, addressStatusesDb[j].TokenContractAddress).First(&asd).Error
+		//if err != nil {
+		//	if errors.Is(gorm.ErrRecordNotFound, err) {
+		//		if err = db.Create(&addressStatusesDb[j]).Error; err != nil {
+		//			return nil, err
+		//		}
+		//		// inserire nella la tabella delle transazioni che hanno portato a quel token amount x il token contract address e l'addressId (etherscan puoi filtrare per contratto e holder wallet) (che non esiste)
+		//
+		//	} else {
+		//		return nil, err
+		//	}
+		//} else {
+		//	if asd.TokenAmount != addressStatusesDb[j].TokenAmount {
+		//		// aggiorna la tabelle address_status con il nuovo token amont e aggiorna la tabella delle transazioni con solo le transazioni nuove (che non esiste vedi sopra)
+		//	}
+		//}
+	}
+	return nil, nil
 }
