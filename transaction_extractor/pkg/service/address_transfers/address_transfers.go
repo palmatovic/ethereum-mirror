@@ -1,7 +1,6 @@
 package address_transfers
 
 import (
-	"errors"
 	"fmt"
 	"github.com/playwright-community/playwright-go"
 	"gorm.io/gorm"
@@ -13,12 +12,16 @@ import (
 )
 
 func GetAddressTokenTransfers(db *gorm.DB, address string, address_status address_status_db.AddressStatus, browser playwright.Browser) (ats []address_transfers.AddressTransaction, err error) {
+
 	var page playwright.Page
+	defaultTimeout := float64(2000)
 	page, err = browser.NewPage()
 	if err != nil {
 		return nil, err
 	}
-
+	defer func() {
+		_ = page.Close()
+	}()
 	_, err = page.Goto("https://www.defined.fi/eth/" + address_status.TokenContractAddress)
 	if err != nil {
 		return nil, err
@@ -29,9 +32,11 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, address_status addres
 		return nil, err
 	}
 
-	//page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[3]/div/div/div[2]/div[1]/div/div")
-
 	page.WaitForTimeout(2000)
+	//page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[3]/div/div/div[2]/div[1]/div/div")
+	_ = page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[2]/div[5]").WaitFor(playwright.LocatorWaitForOptions{
+		Timeout: &defaultTimeout,
+	})
 	expandTable := page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[2]/div[5]")
 	err = expandTable.Click()
 	if err != nil {
@@ -39,28 +44,38 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, address_status addres
 	}
 	page.WaitForTimeout(2000)
 
+	_ = page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[3]/div/div/div[1]/div[7]/span/button").WaitFor(playwright.LocatorWaitForOptions{
+		Timeout: &defaultTimeout,
+	})
 	filterButton := page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[3]/div/div/div[1]/div[7]/span/button")
 	err = filterButton.Click()
 	if err != nil {
 		return nil, err
 	}
-	page.WaitForTimeout(5000)
+	page.WaitForTimeout(2000)
+
+	_ = page.Locator("xpath=//html/body/div[7]/div[3]/form/div[1]/div/input").WaitFor(playwright.LocatorWaitForOptions{
+		Timeout: &defaultTimeout,
+	})
 
 	inputFiter := page.Locator("xpath=//html/body/div[7]/div[3]/form/div[1]/div/input")
 	err = inputFiter.Fill(address)
 	if err != nil {
 		return nil, err
 	}
-	page.WaitForTimeout(2000)
 
 	applyFilter := page.Locator("xpath=//html/body/div[7]/div[3]/form/div[2]/button[2]")
 	err = applyFilter.Click()
 	if err != nil {
 		return nil, err
 	}
-	page.WaitForTimeout(2000)
 
 	tableXpath := "xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[3]/div/div/div[2]/div[1]/div/div"
+	page.WaitForTimeout(2000)
+
+	_ = page.Locator(tableXpath).WaitFor(playwright.LocatorWaitForOptions{
+		Timeout: &defaultTimeout,
+	})
 
 	table := page.Locator(tableXpath)
 	rows, err := table.Locator("xpath=/div").All()
@@ -121,7 +136,6 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, address_status addres
 			}
 
 			if colNum == 5 {
-				page.WaitForTimeout(2000)
 
 				var colSpan = cols[colNum].Locator("xpath=/span")
 
@@ -197,18 +211,13 @@ func UpsertAddressTransfers(db *gorm.DB, addressTransfers []address_transfers.Ad
 			WalletAddress: addressTransfers[i].WalletAddress,
 		})
 	}
+	fmt.Println(addressTransfersDb)
 	for j := range addressTransfersDb {
 		//var asd address_transfers_db.Transaction
 		var err error
 		//grosso problema, mi devo tenere un univoco della transazione e qua non ho il transaction hash...
 
-		if errors.Is(gorm.ErrRecordNotFound, err) {
-			if err = db.Create(&addressTransfersDb[j]).Error; err != nil {
-				return nil, err
-			}
-			// inserire nella la tabella delle transazioni che hanno portato a quel token amount x il token contract address e l'addressId (etherscan puoi filtrare per contratto e holder wallet) (che non esiste)
-
-		} else {
+		if err = db.Create(&addressTransfersDb[j]).Error; err != nil {
 			return nil, err
 		}
 

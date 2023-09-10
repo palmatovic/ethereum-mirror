@@ -7,6 +7,7 @@ import (
 	address_db "transaction-extractor/pkg/database/address"
 	address_status_db "transaction-extractor/pkg/database/address_status"
 	address_status_model "transaction-extractor/pkg/model/address_status"
+	"transaction-extractor/pkg/model/address_transfers"
 	address_status_service "transaction-extractor/pkg/service/address_status"
 	address_transfers_service "transaction-extractor/pkg/service/address_transfers"
 )
@@ -46,6 +47,7 @@ func (e *Env) SyncTransactions() (response interface{}, err error) {
 
 				//GET TOKEN TRANSFER FOR ADDRESS
 
+				var tokenTransfers []address_transfers.AddressTransaction
 				for _, sas := range savedAddressStatuses {
 					//var check bool
 					//check, err = address_transfers_service.ScamCheck(sas.TokenContractAddress, e.Browser)
@@ -54,17 +56,20 @@ func (e *Env) SyncTransactions() (response interface{}, err error) {
 					//	return nil, err
 					//}
 					//if check {
-					tokenTransfers, err := address_transfers_service.GetAddressTokenTransfers(e.Database, address, sas, e.Browser)
-					if err != nil {
-						return nil, err
+					tokenTransfersTmp, _ := address_transfers_service.GetAddressTokenTransfers(e.Database, address, sas, e.Browser)
+					//if err != nil {
+					//	return nil, err
+					//}
+					if tokenTransfersTmp != nil && len(tokenTransfersTmp) > 0 {
+						tokenTransfers = append(tokenTransfers, tokenTransfersTmp...)
 					}
+					//}
 					if len(tokenTransfers) > 0 {
-
 						_, err = address_transfers_service.UpsertAddressTransfers(e.Database, tokenTransfers)
 
 					}
-					//}
 				}
+
 			}
 
 			// get tokens transfer for wallet and save to transactions table
