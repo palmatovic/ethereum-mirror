@@ -8,9 +8,9 @@ func (Transaction) TableName() string {
 
 type Transaction struct {
 	TxType       string    `gorm:"column:TxType;varchar(100)"`
-	Price        string    `gorm:"column:Price;varchar(20);not null"`
-	Amount       string    `gorm:"column:Amount;varchar(1000)"`
-	Total        string    `gorm:"column:Total;varchar(200);not null"`
+	Price        float64   `gorm:"column:Price;not null"`
+	Amount       float64   `gorm:"column:Amount"`
+	Total        float64   `gorm:"column:Total;not null"`
 	AgeTimestamp time.Time `gorm:"column:AgeTimestamp;type:DATETIME;not null"`
 	//AgeDistanceFromQuery string    `gorm:"column:AgeDistanceFromQuery;varchar(200);not null"`
 	//AgeMillis            string    `gorm:"column:AgeMillis;varchar(200);not null"`

@@ -1,14 +1,16 @@
 package address_transfers
 
 import (
-	"fmt"
 	"github.com/playwright-community/playwright-go"
+	log "github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"strconv"
 	"strings"
 	"time"
 	address_status_db "transaction-extractor/pkg/database/address_status"
 	address_transfers_db "transaction-extractor/pkg/database/address_transfers"
 	"transaction-extractor/pkg/model/address_transfers"
+	"transaction-extractor/pkg/util"
 )
 
 func GetAddressTokenTransfers(db *gorm.DB, address string, address_status address_status_db.AddressStatus, browser playwright.Browser) (ats []address_transfers.AddressTransaction, err error) {
@@ -107,28 +109,38 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, address_status addres
 				if err != nil {
 					return nil, err
 				}
+
 			}
 
 			if colNum == 1 {
-				at.Price, err = cols[colNum].InnerText()
+				at.Price, err = cols[colNum].TextContent()
 				if err != nil {
 					return nil, err
 				}
-				at.Price = strings.TrimSpace(at.Price[1:])
+				at.Price = strings.ReplaceAll(at.Price, ",", "")
+				at.Price = strings.ReplaceAll(at.Price, "$", "")
+
+				util.CleanText(&at.Price)
 			}
 
 			if colNum == 2 {
-				at.Amount, err = cols[colNum].InnerText()
+				at.Amount, err = cols[colNum].TextContent()
 				if err != nil {
 					return nil, err
 				}
+				at.Amount = strings.ReplaceAll(at.Amount, ",", "")
+				at.Amount = strings.ReplaceAll(at.Amount, "$", "")
+				util.CleanText(&at.Amount)
 			}
 
 			if colNum == 3 {
-				at.Total, err = cols[colNum].InnerText()
+				at.Total, err = cols[colNum].TextContent()
 				if err != nil {
 					return nil, err
 				}
+				at.Total = strings.ReplaceAll(at.Total, ",", "")
+				at.Total = strings.ReplaceAll(at.Total, "$", "")
+				util.CleanText(&at.Total)
 			}
 
 			if colNum == 4 {
@@ -200,23 +212,33 @@ func ScamCheck(tokenAddress string, browser playwright.Browser) (bool, error) {
 func UpsertAddressTransfers(db *gorm.DB, addressTransfers []address_transfers.AddressTransaction) ([]address_transfers_db.Transaction, error) {
 	var addressTransfersDb []address_transfers_db.Transaction
 	for i := range addressTransfers {
-		fmt.Println(addressTransfers[i])
+		floatPrice, err := strconv.ParseFloat(addressTransfers[i].Price, 64)
+		if err != nil {
+			log.WithError(err).Errorf("Could not parse price %v with error: %v", addressTransfers[i], err)
+		}
+		floatAmount, err := strconv.ParseFloat(addressTransfers[i].Amount, 64)
+		if err != nil {
+			log.WithError(err).Errorf("Could not parse amount %v with error: %v", addressTransfers[i], err)
+		}
+		floatTotal, err := strconv.ParseFloat(addressTransfers[i].Total, 64)
+		if err != nil {
+			log.WithError(err).Errorf("Could not parse total %v with error: %v", addressTransfers[i], err)
+		}
 		addressTransfersDb = append(addressTransfersDb, address_transfers_db.Transaction{
 			TxType:        addressTransfers[i].TxType,
-			Price:         addressTransfers[i].Price,
-			Amount:        addressTransfers[i].Amount,
-			Total:         addressTransfers[i].Total,
+			Price:         floatPrice,
+			Amount:        floatAmount,
+			Total:         floatTotal,
 			AgeTimestamp:  addressTransfers[i].AgeTimestamp,
 			Asset:         addressTransfers[i].Asset,
 			WalletAddress: addressTransfers[i].WalletAddress,
 		})
 	}
-	fmt.Println(addressTransfersDb)
 	for j := range addressTransfersDb {
 		//var asd address_transfers_db.Transaction
 		var err error
 		//grosso problema, mi devo tenere un univoco della transazione e qua non ho il transaction hash...
-
+		// risolto, entro su action e me prendo il thHash
 		if err = db.Create(&addressTransfersDb[j]).Error; err != nil {
 			return nil, err
 		}

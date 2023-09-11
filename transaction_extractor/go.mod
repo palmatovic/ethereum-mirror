@@ -7,6 +7,7 @@ require (
 	github.com/go-co-op/gocron v1.33.1
 	github.com/playwright-community/playwright-go v0.3700.0
 	github.com/sirupsen/logrus v1.9.3
+	golang.org/x/text v0.3.0
 	gorm.io/driver/sqlite v1.5.3
 	gorm.io/gorm v1.25.4
 )
