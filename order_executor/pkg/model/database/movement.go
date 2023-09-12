@@ -8,9 +8,9 @@ func (Movement) TableName() string {
 	return "Movement"
 }
 
-// la clase rappresenta i muovimenti sull wallet/conto,
+// la clase rappresenta i muovimenti sull wallet_token/conto,
 // qui sono elencate tutte le entrate ed uscite al fine di recuperare il saldo corrente
-// del wallet/conto
+// del wallet_token/conto
 // i muovimenti possono essere legati ad un aggiunta, rimozione di soldi o ad un ordine
 type Movement struct {
 	MovementId int     `gorm:"column:MovementId;primaryKey;type:int;not null"`

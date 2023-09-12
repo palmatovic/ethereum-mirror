@@ -32,7 +32,7 @@ func (e *Env) ExecuteOrdres() (response interface{}, err error) {
 
 		// 	// verifica che la transazione non sia scaduta
 		// 	ct.
-		// 	// prendi il saldo del wallet da cui parte la transazione,
+		// 	// prendi il saldo del wallet_token da cui parte la transazione,
 		// 	// calcola la percentuale
 
 		// 	// calcola il proprio saldo
