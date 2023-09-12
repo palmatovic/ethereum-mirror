@@ -7,3 +7,4 @@
 .idea/sonarlint/securityhotspotstore/index.pb
 .idea/sonarlint/securityhotspotstore/index.pb
 .idea/sonarlint/issuestore/index.pb
+*.pb

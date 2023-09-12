@@ -161,10 +161,14 @@ func getInfo(browser playwright.Browser, balance TokenBalance) (*address_status.
 		Amount:    func() float64 { s, _ := strconv.ParseFloat(approxValue, 64); return s }(),
 		AmountHex: balance.TokenBalance,
 		Symbol: func() string {
-			start := strings.Index(tokenName, "(")
-			end := strings.Index(tokenName, ")")
-			content := tokenName[start+1 : end]
-			return content
+			if strings.Contains(tokenName, "(") && strings.Contains(tokenName, ")") {
+				start := strings.Index(tokenName, "(")
+				end := strings.Index(tokenName, ")")
+				content := tokenName[start+1 : end]
+				return content
+			} else {
+				return tokenName
+			}
 		}(),
 	}
 	return &ftb, nil
