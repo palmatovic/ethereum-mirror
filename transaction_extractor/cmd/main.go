@@ -7,6 +7,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 	syncronize "sync"
 	"time"
 	"transaction-extractor/pkg/cron/sync"
@@ -26,31 +27,41 @@ type Environment struct {
 func main() {
 	var (
 		e   = Environment{}
-		log = logrus.New()
 		db  *gorm.DB
 		err error
 	)
 
+	logrus.New()
+
+	logrus.SetFormatter(&logrus.JSONFormatter{
+		TimestampFormat:   time.RFC3339Nano,
+		DisableHTMLEscape: false,
+		PrettyPrint:       true,
+	})
+	logrus.SetReportCaller(true)
+
 	// Parse environment variables into the 'e' struct
 	if err = env.Parse(&e); err != nil {
-		log.WithError(err).Fatalln("error during environment parsing")
+		logrus.WithError(err).Fatalln("error during environment parsing")
 	}
 
 	// Open a connection to the SQLite database
-	if db, err = gorm.Open(sqlite.Open("wallet.db"), &gorm.Config{}); err != nil {
-		log.WithError(err).Fatalln("error during database connection")
+	if db, err = gorm.Open(sqlite.Open("wallet.db"), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	}); err != nil {
+		logrus.WithError(err).Fatalln("error during database connection")
 	}
 
 	// Perform automatic database schema migration
 	err = db.AutoMigrate(&address.Address{}, &address_status.AddressStatus{}, &address_transfers.Transaction{})
 	if err != nil {
-		log.WithError(err).Fatalln("error during migration of database")
+		logrus.WithError(err).Fatalln("error during migration of database")
 	}
 
 	// Set up Playwright
 	pw, err := playwright.Run()
 	if err != nil {
-		log.Fatalln("error during Playwright startup:", err)
+		logrus.Fatalln("error during Playwright startup:", err)
 	}
 	defer func(pw *playwright.Playwright) {
 		_ = pw.Stop()
@@ -58,7 +69,7 @@ func main() {
 
 	// Install Playwright
 	if err = playwright.Install(); err != nil {
-		log.Fatalln("error during Playwright installation:", err)
+		logrus.Fatalln("error during Playwright installation:", err)
 	}
 
 	//executablePath := "/usr/bin/brave-browser"
@@ -68,7 +79,7 @@ func main() {
 		Headless: playwright.Bool(e.PlaywrightHeadLess),
 	})
 	if err != nil {
-		log.Fatalln("error during browser launch:", err)
+		logrus.Fatalln("error during browser launch:", err)
 	}
 
 	// Create an instance of the cron environment
@@ -81,23 +92,23 @@ func main() {
 	var mutex syncronize.Mutex
 
 	// Define the cron job using cron syntax
-	_, err = s.Every(1).Minute().Do(func() {
+	_, err = s.Every(10).Minute().Do(func() {
 		// Lock the mutex before starting the task
 		mutex.Lock()
 		defer mutex.Unlock() // Unlock the mutex when the function finishes
 
 		_, syncErr := c.SyncTransactions()
 		if syncErr != nil {
-			log.Errorln("error during database sync:", syncErr)
+			logrus.Errorln("error during database sync:", syncErr)
 		} else {
-			log.Infoln("database sync completed successfully")
+			logrus.Infoln("database sync completed successfully")
 		}
 	})
 	// Start the cron scheduler (blocking call)
 	s.StartBlocking()
 
 	// This point is reached after the scheduler stops (due to blocking nature)
-	log.Infoln("scheduler stopped, shutting down")
+	logrus.Infoln("scheduler stopped, shutting down")
 }
 
 // token sniffer https://gopluslabs.io/token-security/1/:contractaddress

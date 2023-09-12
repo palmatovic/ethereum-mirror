@@ -4,9 +4,9 @@ import "time"
 
 type AddressTransaction struct {
 	TxType        string    `json:"tx_type"`
-	Price         string    `json:"price"`
-	Amount        string    `json:"amount"`
-	Total         string    `json:"total"`
+	Price         float64   `json:"price"`
+	Amount        float64   `json:"amount"`
+	Total         float64   `json:"total"`
 	AgeTimestamp  time.Time `json:"age_timestamp"`
 	Asset         string    `json:"asset"`
 	WalletAddress string    `json:"wallet_address"`

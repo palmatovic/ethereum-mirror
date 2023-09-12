@@ -2,7 +2,7 @@ package address_transfers
 
 import (
 	"github.com/playwright-community/playwright-go"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"strconv"
 	"strings"
@@ -13,7 +13,7 @@ import (
 	"transaction-extractor/pkg/util"
 )
 
-func GetAddressTokenTransfers(db *gorm.DB, address string, address_status address_status_db.AddressStatus, browser playwright.Browser) (ats []address_transfers.AddressTransaction, err error) {
+func GetAddressTokenTransfers(db *gorm.DB, address string, addressStatus address_status_db.AddressStatus, browser playwright.Browser) (ats []address_transfers.AddressTransaction, err error) {
 
 	var page playwright.Page
 	defaultTimeout := float64(2000)
@@ -24,7 +24,7 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, address_status addres
 	defer func() {
 		_ = page.Close()
 	}()
-	_, err = page.Goto("https://www.defined.fi/eth/" + address_status.TokenContractAddress)
+	_, err = page.Goto("https://www.defined.fi/eth/" + addressStatus.TokenContractAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -93,11 +93,11 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, address_status addres
 
 		at := address_transfers.AddressTransaction{
 			TxType:        "",
-			Price:         "",
-			Amount:        "",
-			Total:         "",
+			Price:         0.0,
+			Amount:        0.0,
+			Total:         0.0,
 			AgeTimestamp:  time.Time{},
-			Asset:         address_status.TokenContractAddress,
+			Asset:         addressStatus.TokenContractAddress,
 			WalletAddress: address,
 			CreatedAt:     time.Time{},
 			ProcessedAt:   time.Time{},
@@ -113,34 +113,46 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, address_status addres
 			}
 
 			if colNum == 1 {
-				at.Price, err = cols[colNum].TextContent()
+				var strPrice string
+				strPrice, err = cols[colNum].TextContent()
 				if err != nil {
 					return nil, err
 				}
-				at.Price = strings.ReplaceAll(at.Price, ",", "")
-				at.Price = strings.ReplaceAll(at.Price, "$", "")
+				strPrice = strings.ReplaceAll(strPrice, ",", "")
+				strPrice = strings.ReplaceAll(strPrice, "$", "")
+				util.CleanText(&strPrice)
+				if at.Amount, err = strconv.ParseFloat(strPrice, 64); err != nil {
+					logrus.WithError(err).Errorf("cannot parse price for value %v", strPrice)
+				}
 
-				util.CleanText(&at.Price)
 			}
 
 			if colNum == 2 {
-				at.Amount, err = cols[colNum].TextContent()
+				var strAmount string
+				strAmount, err = cols[colNum].TextContent()
 				if err != nil {
 					return nil, err
 				}
-				at.Amount = strings.ReplaceAll(at.Amount, ",", "")
-				at.Amount = strings.ReplaceAll(at.Amount, "$", "")
-				util.CleanText(&at.Amount)
+				strAmount = strings.ReplaceAll(strAmount, ",", "")
+				strAmount = strings.ReplaceAll(strAmount, "$", "")
+				util.CleanText(&strAmount)
+				if at.Amount, err = strconv.ParseFloat(strAmount, 64); err != nil {
+					logrus.WithError(err).Errorf("cannot parse amount for value %v", strAmount)
+				}
 			}
 
 			if colNum == 3 {
-				at.Total, err = cols[colNum].TextContent()
+				var strTotal string
+				strTotal, err = cols[colNum].TextContent()
 				if err != nil {
 					return nil, err
 				}
-				at.Total = strings.ReplaceAll(at.Total, ",", "")
-				at.Total = strings.ReplaceAll(at.Total, "$", "")
-				util.CleanText(&at.Total)
+				strTotal = strings.ReplaceAll(strTotal, ",", "")
+				strTotal = strings.ReplaceAll(strTotal, "$", "")
+				util.CleanText(&strTotal)
+				if at.Total, err = strconv.ParseFloat(strTotal, 64); err != nil {
+					logrus.WithError(err).Errorf("cannot parse total for value %v", strTotal)
+				}
 			}
 
 			if colNum == 4 {
@@ -155,9 +167,8 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, address_status addres
 				if err != nil {
 					return nil, err
 				}
-				print(ageTimestamp)
 
-				at.AgeTimestamp, err = time.Parse("2006-01-02 15:04:05", ageTimestamp)
+				at.AgeTimestamp, err = time.Parse(time.DateTime, ageTimestamp)
 				if err != nil {
 					return nil, err
 				}
@@ -192,11 +203,14 @@ func ScamCheck(tokenAddress string, browser playwright.Browser) (bool, error) {
 	}
 
 	attentionItems := page.Locator("xpath=//html/body/div[1]/div[2]/div[2]/div[1]/div/div[3]/div[1]/div/div[2]")
-	attentionItemsNum, err := attentionItems.TextContent()
+	//TODO cos'è ?
+
+	//attentionItemsNum
+	_, err = attentionItems.TextContent()
 	if err != nil {
 		return false, err
 	}
-	println(attentionItemsNum)
+	//println(attentionItemsNum)
 
 	err = page.Close()
 	if err != nil {
@@ -212,23 +226,23 @@ func ScamCheck(tokenAddress string, browser playwright.Browser) (bool, error) {
 func UpsertAddressTransfers(db *gorm.DB, addressTransfers []address_transfers.AddressTransaction) ([]address_transfers_db.Transaction, error) {
 	var addressTransfersDb []address_transfers_db.Transaction
 	for i := range addressTransfers {
-		floatPrice, err := strconv.ParseFloat(addressTransfers[i].Price, 64)
-		if err != nil {
-			log.WithError(err).Errorf("Could not parse price %v with error: %v", addressTransfers[i], err)
-		}
-		floatAmount, err := strconv.ParseFloat(addressTransfers[i].Amount, 64)
-		if err != nil {
-			log.WithError(err).Errorf("Could not parse amount %v with error: %v", addressTransfers[i], err)
-		}
-		floatTotal, err := strconv.ParseFloat(addressTransfers[i].Total, 64)
-		if err != nil {
-			log.WithError(err).Errorf("Could not parse total %v with error: %v", addressTransfers[i], err)
-		}
+		//floatPrice, err := strconv.ParseFloat(addressTransfers[i].Price, 64)
+		//if err != nil {
+		//	logrus.WithError(err).Errorf("Could not parse price %v with error: %v", addressTransfers[i], err)
+		//}
+		//floatAmount, err := strconv.ParseFloat(addressTransfers[i].Amount, 64)
+		//if err != nil {
+		//	logrus.WithError(err).Errorf("Could not parse amount %v with error: %v", addressTransfers[i], err)
+		//}
+		//floatTotal, err := strconv.ParseFloat(addressTransfers[i].Total, 64)
+		//if err != nil {
+		//	logrus.WithError(err).Errorf("Could not parse total %v with error: %v", addressTransfers[i], err)
+		//}
 		addressTransfersDb = append(addressTransfersDb, address_transfers_db.Transaction{
 			TxType:        addressTransfers[i].TxType,
-			Price:         floatPrice,
-			Amount:        floatAmount,
-			Total:         floatTotal,
+			Price:         addressTransfers[i].Price,
+			Amount:        addressTransfers[i].Amount,
+			Total:         addressTransfers[i].Total,
 			AgeTimestamp:  addressTransfers[i].AgeTimestamp,
 			Asset:         addressTransfers[i].Asset,
 			WalletAddress: addressTransfers[i].WalletAddress,

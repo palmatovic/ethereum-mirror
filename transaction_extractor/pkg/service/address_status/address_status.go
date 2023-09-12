@@ -6,7 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/playwright-community/playwright-go"
-	log "github.com/sirupsen/logrus"
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"io"
 	"math/big"
@@ -61,7 +61,7 @@ func GetAddressStatus(db *gorm.DB, browser playwright.Browser, address string, a
 	client := &http.Client{}
 	response, err := client.Do(request)
 	if err != nil {
-		log.WithError(err).Error("cannot connect to server")
+		logrus.WithError(err).Error("cannot connect to server")
 		return
 	}
 	defer func() {
@@ -69,7 +69,7 @@ func GetAddressStatus(db *gorm.DB, browser playwright.Browser, address string, a
 	}()
 
 	if response.StatusCode != 200 {
-		log.WithError(err).Error("received unexpected response status code from alchemy_getTokenBalances request", response.StatusCode)
+		logrus.WithError(err).Error("received unexpected response status code from alchemy_getTokenBalances request", response.StatusCode)
 	}
 
 	responseData, _ := io.ReadAll(response.Body)
@@ -102,7 +102,7 @@ func GetAddressStatus(db *gorm.DB, browser playwright.Browser, address string, a
 				if addressStatusDb.TokenAmountHex != t.TokenBalance {
 					addressStatus, err := getInfo(browser, t)
 					if err != nil {
-						log.WithError(err).Error("failed to get token info")
+						logrus.WithError(err).Error("failed to get token info")
 					} else {
 						mu.Lock()
 						addressStatuses = append(addressStatuses, *addressStatus)
