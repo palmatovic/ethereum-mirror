@@ -41,7 +41,7 @@ func (e *Env) Sync() {
 				return
 			}
 
-			_, err = wallet_token_service.FindOrCreateWalletTokens(wallet, e.Database, e.AlchemyApiKey, e.Browser)
+			_, err = wallet_token_service.FindOrCreateWalletTokens(wallet, e.Database, e.AlchemyApiKey)
 			if err != nil {
 				logrus.WithError(err).Error("cannot find or create wallet tokens")
 				return

@@ -2,9 +2,9 @@ package token
 
 import (
 	"encoding/base64"
+	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/playwright-community/playwright-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"io"
@@ -14,7 +14,7 @@ import (
 	"wallet-syncronizer/pkg/service/goplus"
 )
 
-func FindOrCreateToken(db *gorm.DB, contractAddress string, alchemyApiKey string, browser playwright.Browser) (token token_db.Token, err error) {
+func FindOrCreateToken(db *gorm.DB, contractAddress string, alchemyApiKey string) (token token_db.Token, err error) {
 	var skipScam = false
 	if err = db.Where("TokenId = ?", contractAddress).First(&token).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -30,18 +30,20 @@ func FindOrCreateToken(db *gorm.DB, contractAddress string, alchemyApiKey string
 					logrus.WithError(err).Errorf("cannot download logo from alchemy response for contract address %v", contractAddress)
 				}
 			}
-			risk, warn, errScam := goplus.ScamCheck(contractAddress, browser)
+			goplusResponse, errScam := goplus.ScamCheck(contractAddress)
 			if errScam != nil {
 				return token, errScam
 			}
 			token = token_db.Token{
-				TokenId:     contractAddress,
-				Name:        tokenMetadata.Result.Name,
-				Symbol:      tokenMetadata.Result.Symbol,
-				Decimals:    tokenMetadata.Result.Decimals,
-				Logo:        logo,
-				RiskScam:    risk,
-				WarningScam: warn,
+				TokenId:  contractAddress,
+				Name:     tokenMetadata.Result.Name,
+				Symbol:   tokenMetadata.Result.Symbol,
+				Decimals: tokenMetadata.Result.Decimals,
+				Logo:     logo,
+				GoPlusResponse: func() []byte {
+					b, _ := json.Marshal(goplusResponse)
+					return b
+				}(),
 			}
 			if err = db.Create(&token).Error; err != nil {
 				return token, err
@@ -51,21 +53,18 @@ func FindOrCreateToken(db *gorm.DB, contractAddress string, alchemyApiKey string
 	}
 
 	if !skipScam {
-		risk, warn, errScam := goplus.ScamCheck(token.TokenId, browser)
+		goplusResponse, errScam := goplus.ScamCheck(contractAddress)
 		if errScam != nil {
 			return token, errScam
 		}
-		if token.RiskScam != risk || token.WarningScam != warn {
-			if token.RiskScam != risk {
-				token.RiskScam = risk
-			}
-			if token.WarningScam != warn {
-				token.WarningScam = warn
-			}
-			if err = db.Where("TokenId = ?", token.TokenId).Updates(&token).Error; err != nil {
-				return token, err
-			}
+		token.GoPlusResponse = func() []byte {
+			b, _ := json.Marshal(goplusResponse)
+			return b
+		}()
+		if err = db.Where("TokenId = ?", token.TokenId).Updates(&token).Error; err != nil {
+			return token, err
 		}
+
 	}
 
 	return token, nil
