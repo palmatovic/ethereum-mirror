@@ -4,15 +4,17 @@ import (
 	"encoding/base64"
 	"errors"
 	"fmt"
+	"github.com/playwright-community/playwright-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"io"
 	"net/http"
 	token_db "wallet-syncronizer/pkg/database/token"
 	alchemy_token_metadata "wallet-syncronizer/pkg/service/alchemy/token_metadata"
+	"wallet-syncronizer/pkg/service/goplus"
 )
 
-func FindOrCreateToken(db *gorm.DB, contractAddress string, alchemyApiKey string) (token token_db.Token, err error) {
+func FindOrCreateToken(db *gorm.DB, contractAddress string, alchemyApiKey string, browser playwright.Browser) (token token_db.Token, err error) {
 	if err = db.Where("TokenId = ?", contractAddress).First(&token).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			var tokenMetadata alchemy_token_metadata.TokenMetadataResponse
@@ -39,6 +41,24 @@ func FindOrCreateToken(db *gorm.DB, contractAddress string, alchemyApiKey string
 			}
 		}
 	}
+
+	risk, warn, err := goplus.IsScam(token.TokenId, browser)
+	if err != nil {
+		return token, err
+	}
+
+	if token.RiskScam != risk || token.WarningScam != warn {
+		if token.RiskScam != risk {
+			token.RiskScam = risk
+		}
+		if token.WarningScam != warn {
+			token.WarningScam = warn
+		}
+		if err = db.Updates(&token).Error; err != nil {
+			return token, err
+		}
+	}
+
 	return token, nil
 }
 

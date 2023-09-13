@@ -180,49 +180,6 @@ func GetAddressTokenTransfers(db *gorm.DB, address string, addressStatus address
 	return ats, nil
 }
 
-func ScamCheck(tokenAddress string, browser playwright.Browser) (bool, error) {
-	page, err := browser.NewPage()
-	if err != nil {
-		return false, err
-	}
-
-	_, err = page.Goto("https://gopluslabs.io/token-security/1/" + tokenAddress)
-	if err != nil {
-		return false, err
-	}
-
-	err = page.WaitForLoadState()
-	if err != nil {
-		return false, err
-	}
-
-	riskyItems := page.Locator("xpath=//html/body/div[1]/div[2]/div[2]/div[1]/div/div[3]/div[1]/div/div[2]")
-	riskyItemsNum, err := riskyItems.TextContent()
-	if err != nil {
-		return false, err
-	}
-
-	attentionItems := page.Locator("xpath=//html/body/div[1]/div[2]/div[2]/div[1]/div/div[3]/div[1]/div/div[2]")
-	//TODO cos'è ?
-
-	//attentionItemsNum
-	_, err = attentionItems.TextContent()
-	if err != nil {
-		return false, err
-	}
-	//println(attentionItemsNum)
-
-	err = page.Close()
-	if err != nil {
-		return false, err
-	}
-	if riskyItemsNum != "0" {
-		return true, nil
-	} else {
-		return false, err
-	}
-}
-
 func UpsertAddressTransfers(db *gorm.DB, addressTransfers []wallet_transaction.AddressTransaction) ([]address_transfers_db.WalletTransaction, error) {
 	var addressTransfersDb []address_transfers_db.WalletTransaction
 	for i := range addressTransfers {

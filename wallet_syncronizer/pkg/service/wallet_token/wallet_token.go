@@ -2,6 +2,7 @@ package wallet_token
 
 import (
 	"errors"
+	"github.com/playwright-community/playwright-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"sync"
@@ -14,7 +15,7 @@ import (
 )
 
 // FindOrCreateWalletTokens returns a list of all token balance by wallet_token
-func FindOrCreateWalletTokens(walletDb wallet_db.Wallet, db *gorm.DB, alchemyApiKey string) (walletTokens []wallet_token_db.WalletToken, err error) {
+func FindOrCreateWalletTokens(walletDb wallet_db.Wallet, db *gorm.DB, alchemyApiKey string, browser playwright.Browser) (walletTokens []wallet_token_db.WalletToken, err error) {
 
 	alchemyWalletBalances, err := wallet_balance.GetWalletBalances(walletDb.WalletId, alchemyApiKey)
 	if err != nil {
@@ -38,11 +39,15 @@ func FindOrCreateWalletTokens(walletDb wallet_db.Wallet, db *gorm.DB, alchemyApi
 					<-semaphore
 				}()
 				var tokenDb token_db.Token
-				tokenDb, err = token_service.FindOrCreateToken(db, wb.TokenContractAddress, alchemyApiKey)
+				tokenDb, err = token_service.FindOrCreateToken(db, wb.TokenContractAddress, alchemyApiKey, browser)
 				if err != nil {
 					logrus.WithFields(logrus.Fields{"wallet_id": walletDb.WalletId, "token_contract_address": wb.TokenContractAddress}).WithError(err).Error("cannot find or create token")
 					return
 				}
+				if tokenDb.RiskScam != 0 || tokenDb.WarningScam != 0 {
+					logrus.WithFields(logrus.Fields{"wallet_id": walletDb.WalletId, "token_contract_address": wb.TokenContractAddress}).Warningf("scam token found. skipping process")
+				}
+
 				tokenAmount := util.CalculateAmount(wb.TokenBalance, tokenDb.Decimals)
 				var walletToken wallet_token_db.WalletToken
 				if errFirst := db.Where("WalletId = ? AND TokenId = ?", walletDb.WalletId, tokenDb.TokenId).First(&walletToken).Error; errFirst != nil {

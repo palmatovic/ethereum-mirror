@@ -5,6 +5,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"sync"
+	"time"
 	wallet_service "wallet-syncronizer/pkg/service/wallet"
 	wallet_token_service "wallet-syncronizer/pkg/service/wallet_token"
 )
@@ -21,6 +22,7 @@ func (e *Env) Sync() {
 		concurrentGoroutines = 10
 		semaphore            = make(chan struct{}, concurrentGoroutines)
 		wg                   sync.WaitGroup
+		startTime            = time.Now()
 	)
 
 	for _, walletAddress := range e.Wallets {
@@ -39,13 +41,11 @@ func (e *Env) Sync() {
 				return
 			}
 
-			walletTokens, err := wallet_token_service.FindOrCreateWalletTokens(wallet, e.Database, e.AlchemyApiKey)
+			_, err = wallet_token_service.FindOrCreateWalletTokens(wallet, e.Database, e.AlchemyApiKey, e.Browser)
 			if err != nil {
 				logrus.WithError(err).Error("cannot find or create wallet tokens")
 				return
 			}
-
-			logrus.Infof("wallet tokens to update %d", len(walletTokens))
 
 			//_, err = wallet_transaction_service.FindOrCreateWalletTransactions(walletTokensDb, e.Database, e.Browser)
 			//if err != nil {
@@ -56,5 +56,5 @@ func (e *Env) Sync() {
 		}(walletAddress)
 	}
 	wg.Wait()
-	logrus.Info("sync terminated")
+	logrus.Infof("sync terminated in %s", time.Now().Sub(startTime).String())
 }
