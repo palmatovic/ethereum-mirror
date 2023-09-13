@@ -15,6 +15,7 @@ import (
 )
 
 func FindOrCreateToken(db *gorm.DB, contractAddress string, alchemyApiKey string, browser playwright.Browser) (token token_db.Token, err error) {
+	var skipScam = false
 	if err = db.Where("TokenId = ?", contractAddress).First(&token).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			var tokenMetadata alchemy_token_metadata.TokenMetadataResponse
@@ -29,33 +30,41 @@ func FindOrCreateToken(db *gorm.DB, contractAddress string, alchemyApiKey string
 					logrus.WithError(err).Errorf("cannot download logo from alchemy response for contract address %v", contractAddress)
 				}
 			}
+			risk, warn, errScam := goplus.ScamCheck(contractAddress, browser)
+			if errScam != nil {
+				return token, errScam
+			}
 			token = token_db.Token{
-				TokenId:  contractAddress,
-				Name:     tokenMetadata.Result.Name,
-				Symbol:   tokenMetadata.Result.Symbol,
-				Decimals: tokenMetadata.Result.Decimals,
-				Logo:     logo,
+				TokenId:     contractAddress,
+				Name:        tokenMetadata.Result.Name,
+				Symbol:      tokenMetadata.Result.Symbol,
+				Decimals:    tokenMetadata.Result.Decimals,
+				Logo:        logo,
+				RiskScam:    risk,
+				WarningScam: warn,
 			}
 			if err = db.Create(&token).Error; err != nil {
 				return token, err
 			}
+			skipScam = true
 		}
 	}
 
-	risk, warn, err := goplus.IsScam(token.TokenId, browser)
-	if err != nil {
-		return token, err
-	}
-
-	if token.RiskScam != risk || token.WarningScam != warn {
-		if token.RiskScam != risk {
-			token.RiskScam = risk
+	if !skipScam {
+		risk, warn, errScam := goplus.ScamCheck(token.TokenId, browser)
+		if errScam != nil {
+			return token, errScam
 		}
-		if token.WarningScam != warn {
-			token.WarningScam = warn
-		}
-		if err = db.Updates(&token).Error; err != nil {
-			return token, err
+		if token.RiskScam != risk || token.WarningScam != warn {
+			if token.RiskScam != risk {
+				token.RiskScam = risk
+			}
+			if token.WarningScam != warn {
+				token.WarningScam = warn
+			}
+			if err = db.Where("TokenId = ?", token.TokenId).Updates(&token).Error; err != nil {
+				return token, err
+			}
 		}
 	}
 

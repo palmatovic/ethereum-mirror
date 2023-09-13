@@ -29,26 +29,26 @@ func FindOrCreateWalletTokens(walletDb wallet_db.Wallet, db *gorm.DB, alchemyApi
 		mutex                sync.Mutex
 	)
 
-	for _, walletBalance := range alchemyWalletBalances.Result.WalletBalances {
-		if !util.EmptyTokenBalance(walletBalance.TokenBalance) {
+	for i, _ := range alchemyWalletBalances.Result.WalletBalances {
+		if !util.EmptyTokenBalance(alchemyWalletBalances.Result.WalletBalances[i].TokenBalance) {
 			semaphore <- struct{}{}
 			wg.Add(1)
-			go func(wb wallet_balance.Balance) {
+			go func(walletBalance wallet_balance.Balance) {
 				defer func() {
 					wg.Done()
 					<-semaphore
 				}()
 				var tokenDb token_db.Token
-				tokenDb, err = token_service.FindOrCreateToken(db, wb.TokenContractAddress, alchemyApiKey, browser)
+				tokenDb, err = token_service.FindOrCreateToken(db, walletBalance.TokenContractAddress, alchemyApiKey, browser)
 				if err != nil {
-					logrus.WithFields(logrus.Fields{"wallet_id": walletDb.WalletId, "token_contract_address": wb.TokenContractAddress}).WithError(err).Error("cannot find or create token")
+					logrus.WithFields(logrus.Fields{"wallet_id": walletDb.WalletId, "token_contract_address": walletBalance.TokenContractAddress}).WithError(err).Error("cannot find or create token")
 					return
 				}
 				if tokenDb.RiskScam != 0 || tokenDb.WarningScam != 0 {
-					logrus.WithFields(logrus.Fields{"wallet_id": walletDb.WalletId, "token_contract_address": wb.TokenContractAddress}).Warningf("scam token found. skipping process")
+					//logrus.WithFields(logrus.Fields{"wallet_id": walletDb.WalletId, "token_contract_address": walletBalance.TokenContractAddress}).Warningf("scam token found. skipping process")
+					return
 				}
-
-				tokenAmount := util.CalculateAmount(wb.TokenBalance, tokenDb.Decimals)
+				tokenAmount := util.CalculateAmount(walletBalance.TokenBalance, tokenDb.Decimals)
 				var walletToken wallet_token_db.WalletToken
 				if errFirst := db.Where("WalletId = ? AND TokenId = ?", walletDb.WalletId, tokenDb.TokenId).First(&walletToken).Error; errFirst != nil {
 					if errors.Is(errFirst, gorm.ErrRecordNotFound) {
@@ -56,7 +56,7 @@ func FindOrCreateWalletTokens(walletDb wallet_db.Wallet, db *gorm.DB, alchemyApi
 							WalletId:       walletDb.WalletId,
 							TokenId:        tokenDb.TokenId,
 							TokenAmount:    tokenAmount,
-							TokenAmountHex: wb.TokenBalance,
+							TokenAmountHex: walletBalance.TokenBalance,
 						}
 						if errCreate := db.Create(&walletToken).Error; errCreate != nil {
 							logrus.WithFields(logrus.Fields{"wallet_id": walletDb.WalletId, "token_id": tokenDb.TokenId}).WithError(errCreate).Error("cannot create wallet token")
@@ -80,7 +80,7 @@ func FindOrCreateWalletTokens(walletDb wallet_db.Wallet, db *gorm.DB, alchemyApi
 					}
 				}
 
-			}(walletBalance)
+			}(alchemyWalletBalances.Result.WalletBalances[i])
 		}
 	}
 	wg.Wait()

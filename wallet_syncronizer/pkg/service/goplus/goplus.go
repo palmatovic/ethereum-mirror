@@ -3,10 +3,11 @@ package goplus
 import (
 	"fmt"
 	"github.com/playwright-community/playwright-go"
+	"github.com/sirupsen/logrus"
 	"strconv"
 )
 
-func IsScam(tokenAddress string, browser playwright.Browser) (risk int, warning int, err error) {
+func ScamCheck(tokenAddress string, browser playwright.Browser) (risk int, warning int, err error) {
 	var page playwright.Page
 	page, err = browser.NewPage()
 	if err != nil {
@@ -27,7 +28,7 @@ func IsScam(tokenAddress string, browser playwright.Browser) (risk int, warning 
 		return 0, 0, err
 	}
 
-	riskItemsLocator := page.Locator("xpath=/html/body/div[1]/div[2]/div[2]/div[1]/div/div[3]/div[1]/div/div[2]")
+	riskItemsLocator := page.Locator("xpath=//html/body/div[1]/div[2]/div[2]/div[1]/div/div[3]/div[1]/div/div[2]")
 	riskItemStr, err := riskItemsLocator.TextContent()
 	if err != nil {
 		return 0, 0, err
@@ -37,7 +38,7 @@ func IsScam(tokenAddress string, browser playwright.Browser) (risk int, warning 
 		return 0, 0, err
 	}
 
-	attentionItemsLocator := page.Locator("xpath=/html/body/div[1]/div[2]/div[2]/div[1]/div/div[3]/div[1]/div/div[2]")
+	attentionItemsLocator := page.Locator("xpath=//html/body/div[1]/div[2]/div[2]/div[1]/div/div[3]/div[1]/div/div[2]")
 	attentionItemsStr, err := attentionItemsLocator.TextContent()
 	if err != nil {
 		return 0, 0, err
@@ -46,7 +47,7 @@ func IsScam(tokenAddress string, browser playwright.Browser) (risk int, warning 
 	if err != nil {
 		return 0, 0, err
 	}
-
+	logrus.WithFields(logrus.Fields{"contract_address": tokenAddress, "risk": riskItems, "waning": attentionItems}).Info("scam check data retrieved")
 	return riskItems, attentionItems, nil
 
 }
