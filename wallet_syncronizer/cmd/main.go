@@ -92,7 +92,7 @@ func main() {
 	var mutex syncronize.Mutex
 
 	// Define the cron job using cron syntax
-	_, err = s.Every(10).Minute().Do(func() {
+	_, err = s.Every(1).Minute().Do(func() {
 		// Lock the mutex before starting the task
 		mutex.Lock()
 		defer mutex.Unlock() // Unlock the mutex when the function finishes
@@ -104,5 +104,3 @@ func main() {
 	// This point is reached after the scheduler stops (due to blocking nature)
 	logrus.Infoln("scheduler stopped, shutting down")
 }
-
-// token sniffer https://gopluslabs.io/token-security/1/:contractaddress
