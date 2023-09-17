@@ -25,7 +25,7 @@ type Transaction struct {
 	GasPrice             string    `gorm:"column:GasPrice;varchar(200);not null"`
 	// ScrapingId                 int       `gorm:"column:ScrapingId;type:int;not null"`
 	// Scraping                   scraping.Scraping
-	WalletAddress              string    `gorm:"column:WalletAddress;varchar(1024);not null"`
+	WalletAddress              string    `gorm:"column:WalletId;varchar(1024);not null"`
 	CreatedAt                  time.Time `gorm:"column:CreatedAt;type:DATETIME;autoCreateTime;not null"`
 	ProcessedAt                time.Time `gorm:"column:ProcessedAt;type:DATETIME"`
 	ProcessedByOrderExecutor   bool      `gorm:"column:ProcessedByOrderExecutor;type:boolean;default:false"`

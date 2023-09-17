@@ -8,6 +8,7 @@ import (
 	"time"
 	wallet_service "wallet-syncronizer/pkg/service/wallet"
 	wallet_token_service "wallet-syncronizer/pkg/service/wallet_token"
+	wallet_transaction_service "wallet-syncronizer/pkg/service/wallet_transaction"
 )
 
 type Env struct {
@@ -41,17 +42,17 @@ func (e *Env) Sync() {
 				return
 			}
 
-			_, err = wallet_token_service.FindOrCreateWalletTokens(wallet, e.Database, e.AlchemyApiKey)
+			walletTokens, err := wallet_token_service.FindOrCreateWalletTokens(wallet, e.Database, e.AlchemyApiKey)
 			if err != nil {
 				logrus.WithError(err).Error("cannot find or create wallet tokens")
 				return
 			}
 
-			//_, err = wallet_transaction_service.FindOrCreateWalletTransactions(walletTokensDb, e.Database, e.Browser)
-			//if err != nil {
-			//	logrus.WithError(err).Error("cannot find or create wallet transactions")
-			//	return
-			//}
+			err = wallet_transaction_service.FindOrCreateWalletTransactions(e.Database, walletTokens, e.Browser)
+			if err != nil {
+				logrus.WithError(err).Error("cannot find or create wallet transactions")
+				return
+			}
 
 		}(walletAddress)
 	}

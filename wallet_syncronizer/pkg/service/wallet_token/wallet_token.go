@@ -28,7 +28,7 @@ func FindOrCreateWalletTokens(walletDb wallet_db.Wallet, db *gorm.DB, alchemyApi
 		mutex                sync.Mutex
 	)
 
-	for i, _ := range alchemyWalletBalances.Result.WalletBalances {
+	for i := range alchemyWalletBalances.Result.WalletBalances {
 		if !util.EmptyTokenBalance(alchemyWalletBalances.Result.WalletBalances[i].TokenBalance) {
 			semaphore <- struct{}{}
 			wg.Add(1)
@@ -37,10 +37,11 @@ func FindOrCreateWalletTokens(walletDb wallet_db.Wallet, db *gorm.DB, alchemyApi
 					wg.Done()
 					<-semaphore
 				}()
+				var logFields = logrus.Fields{"wallet_id": walletDb.WalletId, "token_id": walletBalance.TokenContractAddress}
 				var tokenDb token_db.Token
 				tokenDb, err = token_service.FindOrCreateToken(db, walletBalance.TokenContractAddress, alchemyApiKey)
 				if err != nil {
-					logrus.WithFields(logrus.Fields{"wallet_id": walletDb.WalletId, "token_contract_address": walletBalance.TokenContractAddress}).WithError(err).Error("cannot find or create token")
+					logrus.WithFields(logFields).WithError(err).Error("cannot find or create token")
 					return
 				}
 				//if tokenDb.RiskScam != 0 || tokenDb.WarningScam != 0 {
@@ -58,20 +59,20 @@ func FindOrCreateWalletTokens(walletDb wallet_db.Wallet, db *gorm.DB, alchemyApi
 							TokenAmountHex: walletBalance.TokenBalance,
 						}
 						if errCreate := db.Create(&walletToken).Error; errCreate != nil {
-							logrus.WithFields(logrus.Fields{"wallet_id": walletDb.WalletId, "token_id": tokenDb.TokenId}).WithError(errCreate).Error("cannot create wallet token")
+							logrus.WithFields(logFields).WithError(errCreate).Error("cannot create wallet token")
 						}
 						mutex.Lock()
 						walletTokens = append(walletTokens, walletToken)
 						mutex.Unlock()
 					} else {
-						logrus.WithFields(logrus.Fields{"wallet_id": walletDb.WalletId, "token_id": tokenDb.TokenId}).WithError(errFirst).Error("cannot query wallet token")
+						logrus.WithFields(logFields).WithError(errFirst).Error("cannot query wallet token")
 						return
 					}
 				} else {
 					if tokenAmount != walletToken.TokenAmount {
 						walletToken.TokenAmount = tokenAmount
 						if errUpdate := db.Updates(&walletToken).Error; errUpdate != nil {
-							logrus.WithFields(logrus.Fields{"wallet_id": walletDb.WalletId, "token_id": tokenDb.TokenId}).WithError(errUpdate).Error("cannot update wallet token")
+							logrus.WithFields(logFields).WithError(errUpdate).Error("cannot update wallet token")
 						}
 						mutex.Lock()
 						walletTokens = append(walletTokens, walletToken)
