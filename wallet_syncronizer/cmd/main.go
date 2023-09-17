@@ -14,6 +14,7 @@ import (
 	"wallet-syncronizer/pkg/database/token"
 	"wallet-syncronizer/pkg/database/wallet"
 	"wallet-syncronizer/pkg/database/wallet_token"
+	"wallet-syncronizer/pkg/database/wallet_transaction"
 )
 
 // Environment
@@ -53,7 +54,7 @@ func main() {
 	}
 
 	// Perform automatic database schema migration
-	err = db.AutoMigrate(&wallet.Wallet{}, &token.Token{}, &wallet_token.WalletToken{})
+	err = db.AutoMigrate(&wallet.Wallet{}, &token.Token{}, &wallet_token.WalletToken{}, &wallet_transaction.WalletTransaction{})
 	if err != nil {
 		logrus.WithError(err).Fatalln("error during migration of database")
 	}
@@ -72,11 +73,11 @@ func main() {
 		logrus.Fatalln("error during Playwright installation:", err)
 	}
 
-	//executablePath := "/usr/bin/brave-browser"
+	executablePath := "/usr/bin/brave-browser"
 	// Launch Firefox browser
 	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
-		//ExecutablePath: &executablePath,
-		Headless: playwright.Bool(e.PlaywrightHeadLess),
+		ExecutablePath: &executablePath,
+		Headless:       playwright.Bool(e.PlaywrightHeadLess),
 	})
 	if err != nil {
 		logrus.Fatalln("error during browser launch:", err)
