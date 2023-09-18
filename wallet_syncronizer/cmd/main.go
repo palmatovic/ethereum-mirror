@@ -42,7 +42,7 @@ func main() {
 	e := loadEnvironment()
 	db := initializeDatabase()
 	initializeDatabaseSchema(db)
-	go startCronJob(db, e)
+	go startCronJob(db, e.BrowserPath, e.PlaywrightHeadLess, e.AlchemyApiKey, e.ScrapeIntervalMinutes)
 	app := initializeFiberApp(db)
 	startFiberServer(app, e.FiberPort)
 }
@@ -112,7 +112,7 @@ func startFiberServer(app *fiber.App, port int) {
 	}
 }
 
-func startCronJob(db *gorm.DB, e Environment) {
+func startCronJob(db *gorm.DB, browserPath string, pwHeadless bool, apiKey string, interval int) {
 	pw, err := initializePlaywright()
 	if err != nil {
 		logrus.Fatalln("error during Playwright setup:", err)
@@ -121,8 +121,8 @@ func startCronJob(db *gorm.DB, e Environment) {
 		_ = pw.Stop()
 	}(pw)
 
-	c := syncronizer.Env{Browser: initializeBrowser(pw, e.BrowserPath, e.PlaywrightHeadLess), Database: db, AlchemyApiKey: e.AlchemyApiKey}
-	runCronJob(c, e.ScrapeIntervalMinutes)
+	c := syncronizer.Env{Browser: initializeBrowser(pw, browserPath, pwHeadless), Database: db, AlchemyApiKey: apiKey}
+	runCronJob(c, interval)
 }
 
 func initializePlaywright() (*playwright.Playwright, error) {
