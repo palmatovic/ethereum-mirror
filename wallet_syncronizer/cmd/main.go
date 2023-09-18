@@ -42,7 +42,7 @@ func main() {
 	e := loadEnvironment()
 	db := initializeDatabase()
 	initializeDatabaseSchema(db)
-	go startCronJob(db, e.BrowserPath, e.PlaywrightHeadLess, e.AlchemyApiKey, e.ScrapeIntervalMinutes)
+	startCronJob(db, e.BrowserPath, e.PlaywrightHeadLess, e.AlchemyApiKey, e.ScrapeIntervalMinutes)
 	app := initializeFiberApp(db)
 	startFiberServer(app, e.FiberPort)
 }
@@ -121,8 +121,8 @@ func startCronJob(db *gorm.DB, browserPath string, pwHeadless bool, apiKey strin
 		_ = pw.Stop()
 	}(pw)
 
-	c := syncronizer.Env{Browser: initializeBrowser(pw, browserPath, pwHeadless), Database: db, AlchemyApiKey: apiKey}
-	runCronJob(c, interval)
+	//c := syncronizer.Env{Browser: initializeBrowser(pw, browserPath, pwHeadless), Database: db, AlchemyApiKey: apiKey}
+	//runCronJob(c, interval)
 }
 
 func initializePlaywright() (*playwright.Playwright, error) {

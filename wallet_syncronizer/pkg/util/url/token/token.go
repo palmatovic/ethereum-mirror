@@ -7,6 +7,10 @@ import (
 const Resource = url.BaseUrl + "/token"
 
 const (
-	Get     = Resource
+	Get     = Resource + "/:" + string(Id)
 	GetList = Resource + "/list"
 )
+
+type Parameter string
+
+const Id Parameter = "token_id"

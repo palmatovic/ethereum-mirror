@@ -9,7 +9,7 @@ import (
 	"time"
 	"wallet-syncronizer/pkg/database/wallet_token"
 	"wallet-syncronizer/pkg/database/wallet_transaction"
-	"wallet-syncronizer/pkg/util"
+	string2 "wallet-syncronizer/pkg/util/string"
 )
 
 func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.WalletToken, browser playwright.Browser) (err error) {
@@ -63,7 +63,7 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 			if err2 != nil {
 				return err2
 			}
-			util.CleanText(&notFound)
+			string2.CleanText(&notFound)
 			if strings.ToLower(notFound) == "not found" {
 				// aggiungi come scam token, anche se in realtà andrebbe filtrato a priori una volta ottenuti i dati da go plus
 				// nel service token
@@ -85,7 +85,7 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 			//if err2 != nil {
 			//	return err2
 			//}
-			//util.CleanText(&notFound)
+			//string.CleanText(&notFound)
 			//if strings.ToLower(notFound) == "not found" {
 			//	// aggiungi come scam token, anche se in realtà andrebbe filtrato a priori una volta ottenuti i dati da go plus
 			//	// nel service token
@@ -171,12 +171,12 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 					}
 					strPrice = strings.ReplaceAll(strPrice, ",", "")
 					strPrice = strings.ReplaceAll(strPrice, "$", "")
-					util.CleanText(&strPrice)
+					string2.CleanText(&strPrice)
 					if at.Price, err = strconv.ParseFloat(strPrice, 64); err != nil {
-						at.Price, err = util.ParseScript(strPrice)
+						at.Price, err = string2.ParseScript(strPrice)
 						if err != nil {
-							util.CleanTextWithRemoveUnicodeSpaces(&strPrice)
-							at.Price, err = util.ParseScript(strPrice)
+							string2.CleanTextWithRemoveUnicodeSpaces(&strPrice)
+							at.Price, err = string2.ParseScript(strPrice)
 							if err != nil {
 								logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot parse price: row %d column %d", r, colNum)
 								return err
@@ -195,12 +195,12 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 					}
 					strAmount = strings.ReplaceAll(strAmount, ",", "")
 					strAmount = strings.ReplaceAll(strAmount, "$", "")
-					util.CleanText(&strAmount)
+					string2.CleanText(&strAmount)
 					if at.Amount, err = strconv.ParseFloat(strAmount, 64); err != nil {
-						at.Amount, err = util.ParseScript(strAmount)
+						at.Amount, err = string2.ParseScript(strAmount)
 						if err != nil {
-							util.CleanTextWithRemoveUnicodeSpaces(&strAmount)
-							at.Amount, err = util.ParseScript(strAmount)
+							string2.CleanTextWithRemoveUnicodeSpaces(&strAmount)
+							at.Amount, err = string2.ParseScript(strAmount)
 							if err != nil {
 								logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot parse amount: row %d column %d", r, colNum)
 								return err
@@ -218,12 +218,12 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 					}
 					strTotal = strings.ReplaceAll(strTotal, ",", "")
 					strTotal = strings.ReplaceAll(strTotal, "$", "")
-					util.CleanText(&strTotal)
+					string2.CleanText(&strTotal)
 					if at.Total, err = strconv.ParseFloat(strTotal, 64); err != nil {
-						at.Total, err = util.ParseScript(strTotal)
+						at.Total, err = string2.ParseScript(strTotal)
 						if err != nil {
-							util.CleanTextWithRemoveUnicodeSpaces(&strTotal)
-							at.Total, err = util.ParseScript(strTotal)
+							string2.CleanTextWithRemoveUnicodeSpaces(&strTotal)
+							at.Total, err = string2.ParseScript(strTotal)
 							if err != nil {
 								logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot parse total: row %d column %d", r, colNum)
 								return err

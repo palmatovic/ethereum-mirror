@@ -7,6 +7,10 @@ import (
 const Resource = url.BaseUrl + "/wallet-transaction"
 
 const (
-	Get     = Resource
+	Get     = Resource + "/:" + string(Id)
 	GetList = Resource + "/list"
 )
+
+type Parameter string
+
+const Id Parameter = ":wallet_token_id"

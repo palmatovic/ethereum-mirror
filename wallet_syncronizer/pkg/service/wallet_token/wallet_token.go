@@ -10,7 +10,7 @@ import (
 	wallet_token_db "wallet-syncronizer/pkg/database/wallet_token"
 	"wallet-syncronizer/pkg/service/alchemy/wallet_balance"
 	token_service "wallet-syncronizer/pkg/service/token"
-	"wallet-syncronizer/pkg/util"
+	string2 "wallet-syncronizer/pkg/util/string"
 )
 
 // FindOrCreateWalletTokens returns a list of all token balance by wallet_token
@@ -29,7 +29,7 @@ func FindOrCreateWalletTokens(walletDb wallet_db.Wallet, db *gorm.DB, alchemyApi
 	)
 
 	for i := range alchemyWalletBalances.Result.WalletBalances {
-		if !util.EmptyTokenBalance(alchemyWalletBalances.Result.WalletBalances[i].TokenBalance) {
+		if !string2.EmptyTokenBalance(alchemyWalletBalances.Result.WalletBalances[i].TokenBalance) {
 			semaphore <- struct{}{}
 			wg.Add(1)
 			go func(walletBalance wallet_balance.Balance) {
@@ -48,7 +48,7 @@ func FindOrCreateWalletTokens(walletDb wallet_db.Wallet, db *gorm.DB, alchemyApi
 				//	//logrus.WithFields(logrus.Fields{"wallet_id": walletDb.WalletId, "token_contract_address": walletBalance.TokenContractAddress}).Warningf("scam token found. skipping process")
 				//	return
 				//}
-				tokenAmount := util.CalculateAmount(walletBalance.TokenBalance, tokenDb.Decimals)
+				tokenAmount := string2.CalculateAmount(walletBalance.TokenBalance, tokenDb.Decimals)
 				var walletToken wallet_token_db.WalletToken
 				if errFirst := db.Where("WalletId = ? AND TokenId = ?", walletDb.WalletId, tokenDb.TokenId).First(&walletToken).Error; errFirst != nil {
 					if errors.Is(errFirst, gorm.ErrRecordNotFound) {
