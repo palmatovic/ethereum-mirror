@@ -2,22 +2,23 @@ package main
 
 import (
 	"fmt"
-	"github.com/caarlos0/env/v6"
 	"github.com/go-co-op/gocron"
+	"sync"
+	"time"
+
+	"github.com/caarlos0/env/v6"
 	"github.com/gofiber/fiber/v2"
 	"github.com/playwright-community/playwright-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
-	"log"
-	syncronize "sync"
-	"time"
+
 	token_api "wallet-syncronizer/pkg/api/token"
 	wallet_api "wallet-syncronizer/pkg/api/wallet"
 	wallet_token_api "wallet-syncronizer/pkg/api/wallet_token"
 	wallet_transaction_api "wallet-syncronizer/pkg/api/wallet_transaction"
-	"wallet-syncronizer/pkg/cron/sync"
+	syncronizer "wallet-syncronizer/pkg/cron/sync"
 	"wallet-syncronizer/pkg/database/token"
 	"wallet-syncronizer/pkg/database/wallet"
 	"wallet-syncronizer/pkg/database/wallet_token"
@@ -28,57 +29,62 @@ import (
 	wallet_transaction_url "wallet-syncronizer/pkg/util/url/wallet_transaction"
 )
 
-// Environment
-// Defines the structure for holding environment variables
 type Environment struct {
-	//Wallets            []string `env:"WALLETS,required"` // 0x905615DE62BE9B1a6582843E8ceDeDB6BDA42367
-	PlaywrightHeadLess   bool   `env:"PLAYWRIGHT_HEADLESS,required"`
-	AlchemyApiKey        string `env:"ALCHEMY_API_KEY,required"` // owUCVigVvnHA63o0C6mh3yrf3jxMkV7b
-	FiberPort            int    `env:"FIBER_PORT,required"`
-	BrowserPath          string `env:"BROWSER_PATH,required"`
-	SrapeIntervalMinutes int    `env:"SCRAPE_INTERVAL_MINUTES,required"`
+	PlaywrightHeadLess    bool   `env:"PLAYWRIGHT_HEADLESS,required"`
+	AlchemyApiKey         string `env:"ALCHEMY_API_KEY,required"`
+	FiberPort             int    `env:"FIBER_PORT,required"`
+	BrowserPath           string `env:"BROWSER_PATH,required"`
+	ScrapeIntervalMinutes int    `env:"SCRAPE_INTERVAL_MINUTES,required"`
 }
 
-// WALLETS=0x905615DE62BE9B1a6582843E8ceDeDB6BDA42367;PLAYWYRIGHT_HEADLESS=false;ALCHEMY_API_KEY=owUCVigVvnHA63o0C6mh3yrf3jxMkV7b
-
 func main() {
-	var (
-		e   = Environment{}
-		db  *gorm.DB
-		err error
-	)
+	initializeLogger()
+	e := loadEnvironment()
+	db := initializeDatabase()
+	initializeDatabaseSchema(db)
+	go startCronJob(db, e)
+	app := initializeFiberApp(db)
+	startFiberServer(app, e.FiberPort)
+}
 
-	logrus.New()
+func loadEnvironment() Environment {
+	var e Environment
+	if err := env.Parse(&e); err != nil {
+		logrus.WithError(err).Fatalln("error during environment parsing")
+	}
+	return e
+}
 
+func initializeLogger() {
 	logrus.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat:   time.RFC3339Nano,
 		DisableHTMLEscape: false,
 		PrettyPrint:       true,
 	})
 	logrus.SetReportCaller(true)
+}
 
-	// Parse environment variables into the 'e' struct
-	if err = env.Parse(&e); err != nil {
-		logrus.WithError(err).Fatalln("error during environment parsing")
-	}
-
-	// Open a connection to the SQLite database
-	if db, err = gorm.Open(sqlite.Open("wallet.db"), &gorm.Config{
+func initializeDatabase() *gorm.DB {
+	db, err := gorm.Open(sqlite.Open("wallet.db"), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
-	}); err != nil {
+	})
+
+	if err != nil {
 		logrus.WithError(err).Fatalln("error during database connection")
 	}
 
-	// Perform automatic database schema migration
-	err = db.AutoMigrate(&wallet.Wallet{}, &token.Token{}, &wallet_token.WalletToken{}, &wallet_transaction.WalletTransaction{})
+	return db
+}
+
+func initializeDatabaseSchema(db *gorm.DB) {
+	err := db.AutoMigrate(&wallet.Wallet{}, &token.Token{}, &wallet_token.WalletToken{}, &wallet_transaction.WalletTransaction{})
 	if err != nil {
 		logrus.WithError(err).Fatalln("error during migration of database")
 	}
+}
 
-	go cronJob(db, e.AlchemyApiKey, e.SrapeIntervalMinutes, e.BrowserPath, e.PlaywrightHeadLess)
-
+func initializeFiberApp(db *gorm.DB) *fiber.App {
 	app := fiber.New()
-
 	tokenApi := token_api.NewEnv(db)
 	walletApi := wallet_api.NewEnv(db)
 	walletTokenApi := wallet_token_api.NewEnv(db)
@@ -86,42 +92,53 @@ func main() {
 
 	app.Get(token_url.Get, tokenApi.Get)
 	app.Get(token_url.GetList, tokenApi.GetList)
-
 	app.Get(wallet_url.Get, walletApi.Get)
 	app.Get(wallet_url.GetList, walletApi.GetList)
 	app.Post(wallet_url.Create, walletApi.Create)
 	app.Put(wallet_url.Update, walletApi.Update)
 	app.Delete(wallet_url.Delete, walletApi.Delete)
-
 	app.Get(wallet_token_url.Get, walletTokenApi.Get)
 	app.Get(wallet_token_url.GetList, walletTokenApi.GetList)
-
 	app.Get(wallet_transaction_url.Get, walletTransactionApi.Get)
 	app.Get(wallet_transaction_url.GetList, walletTransactionApi.GetList)
 
-	if err = app.Listen(fmt.Sprintf(":%d", e.FiberPort)); err != nil {
-		log.Fatalf("cannot starting fiber server: %v", err)
+	return app
+}
+
+func startFiberServer(app *fiber.App, port int) {
+	err := app.Listen(fmt.Sprintf(":%d", port))
+	if err != nil {
+		logrus.Fatalf("cannot start Fiber server: %v", err)
 	}
 }
 
-func cronJob(db *gorm.DB, alchemyApiKey string, interval int, browserPath string, headless bool) {
-
-	// Set up Playwright
-	pw, err := playwright.Run()
+func startCronJob(db *gorm.DB, e Environment) {
+	pw, err := initializePlaywright()
 	if err != nil {
-		logrus.Fatalln("error during Playwright startup:", err)
+		logrus.Fatalln("error during Playwright setup:", err)
 	}
-
 	defer func(pw *playwright.Playwright) {
 		_ = pw.Stop()
 	}(pw)
 
-	// Install Playwright
-	if err = playwright.Install(); err != nil {
-		logrus.Fatalln("error during Playwright installation:", err)
+	c := syncronizer.Env{Browser: initializeBrowser(pw, e.BrowserPath, e.PlaywrightHeadLess), Database: db, AlchemyApiKey: e.AlchemyApiKey}
+	runCronJob(c, e.ScrapeIntervalMinutes)
+}
+
+func initializePlaywright() (*playwright.Playwright, error) {
+	pw, err := playwright.Run()
+	if err != nil {
+		return nil, err
 	}
 
-	// Launch Firefox browser
+	if err := playwright.Install(); err != nil {
+		return nil, err
+	}
+
+	return pw, nil
+}
+
+func initializeBrowser(pw *playwright.Playwright, browserPath string, headless bool) playwright.Browser {
 	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
 		ExecutablePath: playwright.String(browserPath),
 		Headless:       playwright.Bool(headless),
@@ -129,23 +146,17 @@ func cronJob(db *gorm.DB, alchemyApiKey string, interval int, browserPath string
 	if err != nil {
 		logrus.Fatalln("error during browser launch:", err)
 	}
+	return browser
+}
 
-	// Create a mutex for synchronization
-	var mutex syncronize.Mutex
-
-	// Create an instance of the cron environment
-	c := sync.Env{Browser: browser, Database: db, AlchemyApiKey: alchemyApiKey}
-
-	// Create a new cron scheduler
+func runCronJob(c syncronizer.Env, interval int) {
+	var mutex sync.Mutex
 	s := gocron.NewScheduler(time.Local)
 
 	for {
-
-		// Define the cron job using cron syntax
-		_, err = s.Every(interval).Minute().Do(func() {
-			// Lock the mutex before starting the task
+		_, err := s.Every(interval).Minutes().Do(func() {
 			mutex.Lock()
-			defer mutex.Unlock() // Unlock the mutex when the function finishes
+			defer mutex.Unlock()
 			c.Sync()
 		})
 
@@ -153,9 +164,7 @@ func cronJob(db *gorm.DB, alchemyApiKey string, interval int, browserPath string
 			logrus.WithError(err).Fatalln("cannot start cron")
 		}
 
-		// Start the cron scheduler (blocking call)
 		s.StartBlocking()
-
 		logrus.Warning("scheduler stopped, shutting down...restarting")
 	}
 }
