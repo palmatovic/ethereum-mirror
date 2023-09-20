@@ -16,7 +16,7 @@ import (
 // FindOrCreateWalletTokens returns a list of all token balance by wallet_token
 func FindOrCreateWalletTokens(walletDb wallet_db.Wallet, db *gorm.DB, alchemyApiKey string) (walletTokens []wallet_token_db.WalletToken, err error) {
 
-	alchemyWalletBalances, err := wallet_balance.GetWalletBalances(walletDb.WalletId, alchemyApiKey)
+	alchemyWalletBalances, err := wallet_balance.GetWalletBalances(string(walletDb.WalletId), alchemyApiKey)
 	if err != nil {
 		return nil, err
 	}

@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"github.com/go-co-op/gocron"
+	"github.com/gofiber/fiber/v2/middleware/requestid"
+	"github.com/google/uuid"
 	"sync"
 	"time"
 
@@ -42,7 +44,7 @@ func main() {
 	e := loadEnvironment()
 	db := initializeDatabase()
 	initializeDatabaseSchema(db)
-	startCronJob(db, e.BrowserPath, e.PlaywrightHeadLess, e.AlchemyApiKey, e.ScrapeIntervalMinutes)
+	go startCronJob(db, e.BrowserPath, e.PlaywrightHeadLess, e.AlchemyApiKey, e.ScrapeIntervalMinutes)
 	app := initializeFiberApp(db)
 	startFiberServer(app, e.FiberPort)
 }
@@ -85,6 +87,21 @@ func initializeDatabaseSchema(db *gorm.DB) {
 
 func initializeFiberApp(db *gorm.DB) *fiber.App {
 	app := fiber.New()
+
+	// generate random request id for each call
+	app.Use(requestid.New(requestid.Config{
+		Header: "X-Request-ID",
+		Generator: func() string {
+			return uuid.New().String()
+		},
+		ContextKey: "uuid",
+	}))
+
+	app.Server().WriteTimeout = 300 * time.Second
+	app.Server().ReadTimeout = 300 * time.Second
+	app.Server().ReadBufferSize = 100 * 1024 * 1024
+	app.Server().MaxRequestBodySize = 100 * 1024 * 1024
+
 	tokenApi := token_api.NewEnv(db)
 	walletApi := wallet_api.NewEnv(db)
 	walletTokenApi := wallet_token_api.NewEnv(db)
@@ -121,8 +138,8 @@ func startCronJob(db *gorm.DB, browserPath string, pwHeadless bool, apiKey strin
 		_ = pw.Stop()
 	}(pw)
 
-	//c := syncronizer.Env{Browser: initializeBrowser(pw, browserPath, pwHeadless), Database: db, AlchemyApiKey: apiKey}
-	//runCronJob(c, interval)
+	c := syncronizer.Env{Browser: initializeBrowser(pw, browserPath, pwHeadless), Database: db, AlchemyApiKey: apiKey}
+	runCronJob(c, interval)
 }
 
 func initializePlaywright() (*playwright.Playwright, error) {

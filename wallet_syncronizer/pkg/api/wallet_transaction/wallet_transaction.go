@@ -3,7 +3,7 @@ package get
 import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
-	"wallet-syncronizer/pkg/api/token/get"
+	"wallet-syncronizer/pkg/api/wallet_transaction/get"
 )
 
 type Env struct {

@@ -7,6 +7,6 @@ func (Wallet) TableName() string {
 }
 
 type Wallet struct {
-	WalletId  string    `json:"wallet_id" gorm:"column:WalletId;primaryKey;varchar(1024)"`
+	WalletId  string    `json:"wallet_id" gorm:"column:WalletId;primaryKey"`
 	CreatedAt time.Time `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
 }

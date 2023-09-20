@@ -12,3 +12,9 @@ func NewErrorResponse(httpStatus int, message string) Response {
 		Error: fiber.NewError(httpStatus, message),
 	}
 }
+
+func NewSuccessResponse(data interface{}) Response {
+	return Response{
+		Data: data,
+	}
+}

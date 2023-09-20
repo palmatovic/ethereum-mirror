@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"io"
@@ -86,4 +87,16 @@ func downloadLogo(logoUrl string) (string, error) {
 		return "", errRead
 	}
 	return base64.StdEncoding.EncodeToString(imageBytes), nil
+}
+
+func GetToken(db *gorm.DB, tokenId string) (status int, token *token_db.Token, err error) {
+	token = new(token_db.Token)
+	if err = db.Where("TokenId = ?", tokenId).First(token).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fiber.StatusNotFound, nil, err
+		} else {
+			return fiber.StatusInternalServerError, nil, err
+		}
+	}
+	return fiber.StatusOK, token, nil
 }
