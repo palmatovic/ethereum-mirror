@@ -84,6 +84,8 @@ func initializeDatabaseSchema(db *gorm.DB) {
 	if err != nil {
 		logrus.WithError(err).Fatalln("error during migration of database")
 	}
+	// TODO:
+	// to be removed
 	if err = db.Where("WalletId = ?", "0x905615DE62BE9B1a6582843E8ceDeDB6BDA42367").First(&wallet.Wallet{}).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			if err = db.Create(&wallet.Wallet{WalletId: "0x905615DE62BE9B1a6582843E8ceDeDB6BDA42367"}).Error; err != nil {

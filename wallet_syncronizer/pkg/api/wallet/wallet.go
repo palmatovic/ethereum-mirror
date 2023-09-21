@@ -3,7 +3,11 @@ package get
 import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
+	"wallet-syncronizer/pkg/api/wallet/create"
+	"wallet-syncronizer/pkg/api/wallet/delete"
 	"wallet-syncronizer/pkg/api/wallet/get"
+	list "wallet-syncronizer/pkg/api/wallet/list"
+	"wallet-syncronizer/pkg/api/wallet/update"
 	"wallet-syncronizer/pkg/util/url/wallet"
 )
 
@@ -20,21 +24,21 @@ func (e *Env) Get(ctx *fiber.Ctx) error {
 	return ctx.Status(status).JSON(response)
 }
 func (e *Env) List(ctx *fiber.Ctx) error {
-	status, response := get.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Params(string(wallet.Id))).Get()
+	status, response := list.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB).List()
 	return ctx.Status(status).JSON(response)
 }
 
 func (e *Env) Create(ctx *fiber.Ctx) error {
-	status, response := get.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Params(string(wallet.Id))).Get()
+	status, response := create.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Body()).Create()
 	return ctx.Status(status).JSON(response)
 }
 
 func (e *Env) Update(ctx *fiber.Ctx) error {
-	status, response := get.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Params(string(wallet.Id))).Get()
+	status, response := update.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Body()).Update()
 	return ctx.Status(status).JSON(response)
 }
 
 func (e *Env) Delete(ctx *fiber.Ctx) error {
-	status, response := get.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Params(string(wallet.Id))).Get()
+	status, response := delete.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Params(string(wallet.Id))).Delete()
 	return ctx.Status(status).JSON(response)
 }

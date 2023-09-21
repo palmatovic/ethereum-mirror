@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 	"wallet-syncronizer/pkg/database/wallet"
-	wallet_service "wallet-syncronizer/pkg/service/wallet"
+	wallet_find_or_create_service "wallet-syncronizer/pkg/service/wallet/find_or_create"
 	wallet_token_service "wallet-syncronizer/pkg/service/wallet_token"
 	wallet_transaction_service "wallet-syncronizer/pkg/service/wallet_transaction"
 )
@@ -50,13 +50,13 @@ func (e *Env) Sync() {
 				<-semaphore
 			}()
 
-			wall, err := wallet_service.FindOrCreateWallet(wAddress, e.Database)
+			wall, err := wallet_find_or_create_service.NewService(e.Database, wAddress).FindOrCreateWallet()
 			if err != nil {
 				logrus.WithError(err).Error("cannot find or create wallet")
 				return
 			}
 
-			walletTokens, err := wallet_token_service.FindOrCreateWalletTokens(wall, e.Database, e.AlchemyApiKey)
+			walletTokens, err := wallet_token_service.FindOrCreateWalletTokens(*wall, e.Database, e.AlchemyApiKey)
 			if err != nil {
 				logrus.WithError(err).Error("cannot find or create wallet tokens")
 				return
