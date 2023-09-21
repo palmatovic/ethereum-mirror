@@ -4,7 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
-	token_service "wallet-syncronizer/pkg/service/token"
+	token_get_service "wallet-syncronizer/pkg/service/token/get"
 	"wallet-syncronizer/pkg/util/json"
 )
 
@@ -31,7 +31,7 @@ func (a *Api) Get() (status int, response interface{}) {
 	if len(a.tokenId) == 0 {
 		return fiber.StatusBadRequest, json.NewErrorResponse(fiber.StatusBadRequest, "empty token_id")
 	}
-	httpStatus, token, err := token_service.GetToken(a.db, a.tokenId)
+	httpStatus, token, err := token_get_service.NewService(a.db, a.tokenId).Get()
 	if err != nil {
 		logrus.WithFields(a.fields).WithError(err).Errorf("terminated with failure")
 		return httpStatus, json.NewErrorResponse(httpStatus, err.Error())

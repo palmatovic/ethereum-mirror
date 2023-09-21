@@ -9,7 +9,7 @@ import (
 	wallet_db "wallet-syncronizer/pkg/database/wallet"
 	wallet_token_db "wallet-syncronizer/pkg/database/wallet_token"
 	"wallet-syncronizer/pkg/service/alchemy/wallet_balance"
-	token_service "wallet-syncronizer/pkg/service/token"
+	token_find_or_create_service "wallet-syncronizer/pkg/service/token/find_or_create"
 	string2 "wallet-syncronizer/pkg/util/string"
 )
 
@@ -38,8 +38,8 @@ func FindOrCreateWalletTokens(walletDb wallet_db.Wallet, db *gorm.DB, alchemyApi
 					<-semaphore
 				}()
 				var logFields = logrus.Fields{"wallet_id": walletDb.WalletId, "token_id": walletBalance.TokenContractAddress}
-				var tokenDb token_db.Token
-				tokenDb, err = token_service.FindOrCreateToken(db, walletBalance.TokenContractAddress, alchemyApiKey)
+				var tokenDb *token_db.Token
+				tokenDb, err = token_find_or_create_service.NewService(db, walletBalance.TokenContractAddress, alchemyApiKey).FindOrCreateToken()
 				if err != nil {
 					logrus.WithFields(logFields).WithError(err).Error("cannot find or create token")
 					return

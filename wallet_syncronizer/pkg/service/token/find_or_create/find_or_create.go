@@ -1,11 +1,10 @@
-package token
+package find_or_create
 
 import (
 	"encoding/base64"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	"io"
@@ -13,30 +12,48 @@ import (
 	token_db "wallet-syncronizer/pkg/database/token"
 	alchemy_token_metadata "wallet-syncronizer/pkg/service/alchemy/token_metadata"
 	"wallet-syncronizer/pkg/service/goplus"
+	token_create_service "wallet-syncronizer/pkg/service/token/create"
+	token_get_service "wallet-syncronizer/pkg/service/token/get"
+	token_update_service "wallet-syncronizer/pkg/service/token/update"
 )
 
-func FindOrCreateToken(db *gorm.DB, contractAddress string, alchemyApiKey string) (token token_db.Token, err error) {
+type Service struct {
+	db              *gorm.DB
+	contractAddress string
+	alchemyApiKey   string
+}
+
+func NewService(db *gorm.DB, contractAddress string, alchemyApiKey string) *Service {
+	return &Service{
+		db:              db,
+		contractAddress: contractAddress,
+		alchemyApiKey:   alchemyApiKey,
+	}
+}
+
+func (s *Service) FindOrCreateToken() (token *token_db.Token, err error) {
 	var skipScam = false
-	if err = db.Where("TokenId = ?", contractAddress).First(&token).Error; err != nil {
+	goplusService := goplus.NewService(s.contractAddress)
+	if _, token, err = token_get_service.NewService(s.db, s.contractAddress).Get(); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			var tokenMetadata alchemy_token_metadata.TokenMetadataResponse
-			tokenMetadata, err = alchemy_token_metadata.GetTokenMetadata(alchemyApiKey, contractAddress)
-			if err != nil {
+			if tokenMetadata, err = alchemy_token_metadata.NewService(s.alchemyApiKey, s.contractAddress).TokenMetadata(); err != nil {
 				return token, err
 			}
 			var logo string
 			if len(tokenMetadata.Result.Logo) > 0 {
 				logo, err = downloadLogo(tokenMetadata.Result.Logo)
 				if err != nil {
-					logrus.WithError(err).Errorf("cannot download logo from alchemy response for contract address %v", contractAddress)
+					logrus.WithError(err).Errorf("cannot download logo from alchemy response for contract address %v", s.contractAddress)
 				}
 			}
-			goplusResponse, errScam := goplus.ScamCheck(contractAddress)
+			goplusResponse, errScam := goplusService.ScamCheck()
 			if errScam != nil {
 				return token, errScam
 			}
-			token = token_db.Token{
-				TokenId:  contractAddress,
+
+			_, token, err = token_create_service.NewService(s.db, &token_db.Token{
+				TokenId:  s.contractAddress,
 				Name:     tokenMetadata.Result.Name,
 				Symbol:   tokenMetadata.Result.Symbol,
 				Decimals: tokenMetadata.Result.Decimals,
@@ -45,8 +62,8 @@ func FindOrCreateToken(db *gorm.DB, contractAddress string, alchemyApiKey string
 					b, _ := json.Marshal(goplusResponse)
 					return b
 				}(),
-			}
-			if err = db.Create(&token).Error; err != nil {
+			}).Create()
+			if err != nil {
 				return token, err
 			}
 			skipScam = true
@@ -54,7 +71,7 @@ func FindOrCreateToken(db *gorm.DB, contractAddress string, alchemyApiKey string
 	}
 
 	if !skipScam {
-		goplusResponse, errScam := goplus.ScamCheck(contractAddress)
+		goplusResponse, errScam := goplusService.ScamCheck()
 		if errScam != nil {
 			return token, errScam
 		}
@@ -62,10 +79,10 @@ func FindOrCreateToken(db *gorm.DB, contractAddress string, alchemyApiKey string
 			b, _ := json.Marshal(goplusResponse)
 			return b
 		}()
-		if err = db.Where("TokenId = ?", token.TokenId).Updates(&token).Error; err != nil {
+		_, token, err = token_update_service.NewService(s.db, token).Update()
+		if err != nil {
 			return token, err
 		}
-
 	}
 
 	return token, nil
@@ -87,16 +104,4 @@ func downloadLogo(logoUrl string) (string, error) {
 		return "", errRead
 	}
 	return base64.StdEncoding.EncodeToString(imageBytes), nil
-}
-
-func GetToken(db *gorm.DB, tokenId string) (status int, token *token_db.Token, err error) {
-	token = new(token_db.Token)
-	if err = db.Where("TokenId = ?", tokenId).First(token).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return fiber.StatusNotFound, nil, err
-		} else {
-			return fiber.StatusInternalServerError, nil, err
-		}
-	}
-	return fiber.StatusOK, token, nil
 }

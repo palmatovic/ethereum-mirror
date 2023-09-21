@@ -7,10 +7,18 @@ import (
 	"github.com/GoPlusSecurity/goplus-sdk-go/pkg/gen/models"
 )
 
-func ScamCheck(tokenAddress string) (response models.ResponseWrapperTokenSecurityResultAnon, err error) {
+type Service struct {
+	tokenAddress string
+}
+
+func NewService(tokenAddress string) *Service {
+	return &Service{tokenAddress: tokenAddress}
+}
+
+func (s *Service) ScamCheck() (response models.ResponseWrapperTokenSecurityResultAnon, err error) {
 	tokenSecurity := token.NewTokenSecurity(nil)
 	chainId := "1"
-	contractAddresses := []string{tokenAddress}
+	contractAddresses := []string{s.tokenAddress}
 	data, err := tokenSecurity.Run(chainId, contractAddresses)
 	if err != nil {
 		return response, err
@@ -19,7 +27,7 @@ func ScamCheck(tokenAddress string) (response models.ResponseWrapperTokenSecurit
 		return response, err
 	}
 	var ok bool
-	response, ok = data.Payload.Result[tokenAddress]
+	response, ok = data.Payload.Result[s.tokenAddress]
 
 	if ok {
 		return response, nil

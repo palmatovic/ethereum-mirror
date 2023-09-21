@@ -21,9 +21,21 @@ type Result struct {
 	Symbol   string `json:"symbol"`
 }
 
-func GetTokenMetadata(apiKey string, contractAddress string) (tokenMetadataResponse TokenMetadataResponse, err error) {
+type Service struct {
+	apiKey          string
+	contractAddress string
+}
+
+func NewService(apiKey string, contractAddress string) *Service {
+	return &Service{
+		apiKey:          apiKey,
+		contractAddress: contractAddress,
+	}
+}
+
+func (s *Service) TokenMetadata() (tokenMetadataResponse TokenMetadataResponse, err error) {
 	// Alchemy URL
-	var baseURL = fmt.Sprintf("https://eth-mainnet.g.alchemy.com/v2/%s", apiKey)
+	var baseURL = fmt.Sprintf("https://eth-mainnet.g.alchemy.com/v2/%s", s.apiKey)
 
 	data := map[string]interface{}{
 		"jsonrpc": "2.0",
@@ -32,7 +44,7 @@ func GetTokenMetadata(apiKey string, contractAddress string) (tokenMetadataRespo
 			"Content-Type": "application/json",
 		},
 		"params": []interface{}{
-			contractAddress,
+			s.contractAddress,
 		},
 		"id": 1,
 	}
