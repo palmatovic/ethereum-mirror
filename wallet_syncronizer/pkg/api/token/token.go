@@ -21,6 +21,7 @@ func (e *Env) Get(ctx *fiber.Ctx) error {
 	return ctx.Status(status).JSON(response)
 }
 
-func (e *Env) GetList(ctx *fiber.Ctx) error {
-	return list.GetList(ctx, e.DB)
+func (e *Env) List(ctx *fiber.Ctx) error {
+	status, response := list.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB).List()
+	return ctx.Status(status).JSON(response)
 }

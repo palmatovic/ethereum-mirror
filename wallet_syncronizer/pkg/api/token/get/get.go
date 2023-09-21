@@ -10,8 +10,6 @@ import (
 
 type Api struct {
 	db      *gorm.DB
-	uuid    string
-	url     string
 	tokenId string
 	fields  logrus.Fields
 }
@@ -20,8 +18,6 @@ func NewApi(uuid string, url string, db *gorm.DB, tokenId string) *Api {
 	return &Api{
 		tokenId: tokenId,
 		db:      db,
-		uuid:    uuid,
-		url:     url,
 		fields:  logrus.Fields{"uuid": uuid, "url": url, "token_id": tokenId},
 	}
 }
