@@ -21,13 +21,6 @@ type Env struct {
 
 func (e *Env) Sync() {
 	var wallets []wallet.Wallet
-	//err := e.Database.Create(&wallet.Wallet{
-	//	WalletId: "0x905615DE62BE9B1a6582843E8ceDeDB6BDA42367",
-	//}).Error
-	//if err != nil {
-	//	logrus.WithError(err).Errorf("failed to create default wallet")
-	//	return
-	//}
 
 	if err := e.Database.Find(&wallets).Error; err != nil {
 		logrus.WithError(err).Errorf("failed to find wallets")
