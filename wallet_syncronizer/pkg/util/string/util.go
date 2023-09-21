@@ -1,7 +1,6 @@
 package string
 
 import (
-	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
 	"math"
@@ -62,11 +61,12 @@ var subscripts = regexp.MustCompile(`\d\p{Zs}*[₀-₉]+\p{Zs}*`)
 
 func ParseScript(weirdSubscriptFormat string) (float64, error) {
 
-	if isValidFloatAndLetter(weirdSubscriptFormat) {
-		return convertFloatAndLetter(weirdSubscriptFormat)
+	weirdSubscriptFormat, err := convertFloatAndLetter(weirdSubscriptFormat)
+	if err != nil {
+		return 0, err
 	}
 	expanded := subscripts.ReplaceAllStringFunc(weirdSubscriptFormat, func(s string) string {
-		fmt.Println("Replacing:", s)
+		//fmt.Println("Replacing:", s)
 		toRepeat := s[0:1]
 		repeatCount := 0
 		for _, rune := range s[1:] {
@@ -77,82 +77,44 @@ func ParseScript(weirdSubscriptFormat string) (float64, error) {
 		}
 		return strings.Repeat(toRepeat, repeatCount)
 	})
-	fmt.Println("converted to:", expanded)
-	deRuner(&expanded)
-	return strconv.ParseFloat(expanded, 64)
-}
 
-func isValidFloatAndLetter(input string) bool {
-	// Regular expression to match a float and a letter
-	re := regexp.MustCompile(`(\d+\.\d*[a-zA-Z]|[a-zA-Z]\d+\.\d*|\d*\.\d+[a-zA-Z]|[a-zA-Z]\d*\.\d*)`)
-	return re.MatchString(input)
-}
-
-func convertFloatAndLetter(input string) (float64, error) {
-	//if isValidFloatAndLetter(input) {
-	//	// Find the letter in the input
-	//	var letter rune
-	//	for _, char := range input {
-	//		if char >= 'a' && char <= 'z' || char >= 'A' && char <= 'Z' {
-	//			letter = char
-	//			break
-	//		}
-	//	}
-	//
-	//	// Extract the numeric part of the input
-	//	numericPart := strings.ReplaceAll(input, string(letter), "")
-	//	numericValue, err := strconv.ParseFloat(numericPart, 64)
-	//	if err != nil {
-	//		return 0, err
-	//	}
-	//
-	//	// Determine the multiplier based on the letter
-	//	multiplier := 1.0
-	//	switch letter {
-	//	case 'B', 'b':
-	//		multiplier = 1e9
-	//	case 'Q', 'q':
-	//		multiplier = 1e15
-	//		// Add more cases for other letters as needed
-	//	}
-	//
-	//	result := numericValue * multiplier
-	//	return result, nil
-	//}
-	//
-	//return 0, fmt.Errorf("invalid input %s", input)
-	//caseMap := make(map[string]string)
-	deRuner(&input)
-	inputSplit := strings.Split(input, " ")
-	if len(inputSplit) == 2 {
-		switch inputSplit[1] {
-		case "B":
-			floatValue, err := strconv.ParseFloat(inputSplit[0], 64)
-			if err != nil {
-				logrus.WithField("input", input).WithError(err).Errorf("cannot parse value: %s", inputSplit[0])
-			}
-			return floatValue * math.Pow(10, 9), nil
-		case "Q":
-			floatValue, err := strconv.ParseFloat(inputSplit[0], 64)
-			if err != nil {
-				logrus.WithField("input", input).WithError(err).Errorf("cannot parse value: %s", inputSplit[0])
-			}
-			return floatValue * math.Pow(10, 15), nil
-		case "M":
-			floatValue, err := strconv.ParseFloat(inputSplit[0], 64)
-			if err != nil {
-				logrus.WithField("input", input).WithError(err).Errorf("cannot parse value: %s", inputSplit[0])
-			}
-			return floatValue * math.Pow(10, 6), nil
-		default:
-			logrus.WithField("input", input).WithError(errors.New("input not matching case")).Errorf("cannot parse value: %s", inputSplit[0])
-			return 0, errors.New("input not matching case")
-		}
-	} else {
-		return strconv.ParseFloat(input, 64)
+	returnFloat, err := strconv.ParseFloat(expanded, 64)
+	if err != nil {
+		return 0, err
 	}
+	return returnFloat, nil
+}
 
-	return 1, nil
+func convertFloatAndLetter(input string) (string, error) {
+	lastChar := input[len(input)-1:]
+	switch lastChar {
+	case "B":
+		deRuner(&input)
+		stringWithoutLastCharacter := input[:len(input)-1]
+		floatValue, err := strconv.ParseFloat(stringWithoutLastCharacter, 64)
+		if err != nil {
+			logrus.WithField("input", input).WithError(err).Errorf("cannot parse value: %s", stringWithoutLastCharacter)
+		}
+		return fmt.Sprintf("%2.f", floatValue*math.Pow(10, 9)), nil
+	case "Q":
+		deRuner(&input)
+		stringWithoutLastCharacter := input[:len(input)-1]
+		floatValue, err := strconv.ParseFloat(stringWithoutLastCharacter, 64)
+		if err != nil {
+			logrus.WithField("input", input).WithError(err).Errorf("cannot parse value: %s", stringWithoutLastCharacter)
+		}
+		return fmt.Sprintf("%2.f", floatValue*math.Pow(10, 15)), nil
+	case "M":
+		deRuner(&input)
+		stringWithoutLastCharacter := input[:len(input)-1]
+		floatValue, err := strconv.ParseFloat(stringWithoutLastCharacter, 64)
+		if err != nil {
+			logrus.WithField("input", input).WithError(err).Errorf("cannot parse value: %s", stringWithoutLastCharacter)
+		}
+		return fmt.Sprintf("%2.f", floatValue*math.Pow(10, 6)), nil
+	default:
+		return input, nil
+	}
 }
 
 func deRuner(text *string) {
