@@ -18,6 +18,6 @@ func (e *Env) Get(ctx *fiber.Ctx) error {
 	return get.Get(ctx, e.DB)
 }
 
-func (e *Env) GetList(ctx *fiber.Ctx) error {
+func (e *Env) List(ctx *fiber.Ctx) error {
 	return get.Get(ctx, e.DB)
 }

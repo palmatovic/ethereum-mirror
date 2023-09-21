@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"github.com/go-co-op/gocron"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
@@ -83,6 +84,13 @@ func initializeDatabaseSchema(db *gorm.DB) {
 	if err != nil {
 		logrus.WithError(err).Fatalln("error during migration of database")
 	}
+	if err = db.Where("WalletId = ?", "0x905615DE62BE9B1a6582843E8ceDeDB6BDA42367").First(&wallet.Wallet{}).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			if err = db.Create(&wallet.Wallet{WalletId: "0x905615DE62BE9B1a6582843E8ceDeDB6BDA42367"}).Error; err != nil {
+				logrus.WithError(err).Fatalln("error during initial wallet setup")
+			}
+		}
+	}
 }
 
 func initializeFiberApp(db *gorm.DB) *fiber.App {
@@ -108,16 +116,16 @@ func initializeFiberApp(db *gorm.DB) *fiber.App {
 	walletTransactionApi := wallet_transaction_api.NewEnv(db)
 
 	app.Get(token_url.Get, tokenApi.Get)
-	app.Get(token_url.GetList, tokenApi.GetList)
+	app.Get(token_url.List, tokenApi.List)
 	app.Get(wallet_url.Get, walletApi.Get)
-	app.Get(wallet_url.GetList, walletApi.GetList)
+	app.Get(wallet_url.List, walletApi.List)
 	app.Post(wallet_url.Create, walletApi.Create)
 	app.Put(wallet_url.Update, walletApi.Update)
 	app.Delete(wallet_url.Delete, walletApi.Delete)
 	app.Get(wallet_token_url.Get, walletTokenApi.Get)
-	app.Get(wallet_token_url.GetList, walletTokenApi.GetList)
+	app.Get(wallet_token_url.List, walletTokenApi.List)
 	app.Get(wallet_transaction_url.Get, walletTransactionApi.Get)
-	app.Get(wallet_transaction_url.GetList, walletTransactionApi.GetList)
+	app.Get(wallet_transaction_url.GetList, walletTransactionApi.List)
 
 	return app
 }

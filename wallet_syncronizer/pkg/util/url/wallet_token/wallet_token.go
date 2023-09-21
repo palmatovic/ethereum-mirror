@@ -7,8 +7,8 @@ import (
 const Resource = url.BaseUrl + "/wallet-token"
 
 const (
-	Get     = Resource + "/:" + string(Id)
-	GetList = Resource + "/list"
+	Get  = Resource + "/:" + string(Id)
+	List = Resource + "/list"
 )
 
 type Parameter string

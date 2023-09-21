@@ -19,8 +19,8 @@ func NewService(db *gorm.DB, token *token_db.Token) *Service {
 }
 
 func (s Service) Update() (status int, token *token_db.Token, err error) {
-	if err = s.db.Where("TokenId = ?", token.TokenId).Updates(token).Error; err != nil {
+	if err = s.db.Where("TokenId = ?", s.token.TokenId).Updates(s.token).Error; err != nil {
 		return fiber.StatusInternalServerError, nil, err
 	}
-	return fiber.StatusOK, token, nil
+	return fiber.StatusOK, s.token, nil
 }

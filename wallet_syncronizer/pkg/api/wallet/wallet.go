@@ -19,7 +19,7 @@ func (e *Env) Get(ctx *fiber.Ctx) error {
 	status, response := get.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Params(string(wallet.Id))).Get()
 	return ctx.Status(status).JSON(response)
 }
-func (e *Env) GetList(ctx *fiber.Ctx) error {
+func (e *Env) List(ctx *fiber.Ctx) error {
 	status, response := get.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Params(string(wallet.Id))).Get()
 	return ctx.Status(status).JSON(response)
 }

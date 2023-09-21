@@ -7,11 +7,11 @@ import (
 const Resource = url.BaseUrl + "/wallet"
 
 const (
-	Get     = Resource + "/:" + string(Id)
-	GetList = Resource + "/list"
-	Create  = Resource
-	Update  = Resource
-	Delete  = Resource + "/:" + string(Id)
+	Get    = Resource + "/:" + string(Id)
+	List   = Resource + "/list"
+	Create = Resource
+	Update = Resource
+	Delete = Resource + "/:" + string(Id)
 )
 
 type Parameter string
