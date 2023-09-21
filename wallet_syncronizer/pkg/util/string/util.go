@@ -1,7 +1,10 @@
 package string
 
 import (
+	"errors"
 	"fmt"
+	"github.com/sirupsen/logrus"
+	"math"
 	"math/big"
 	"regexp"
 	"strconv"
@@ -58,6 +61,7 @@ const (
 var subscripts = regexp.MustCompile(`\d\p{Zs}*[₀-₉]+\p{Zs}*`)
 
 func ParseScript(weirdSubscriptFormat string) (float64, error) {
+
 	if isValidFloatAndLetter(weirdSubscriptFormat) {
 		return convertFloatAndLetter(weirdSubscriptFormat)
 	}
@@ -74,6 +78,7 @@ func ParseScript(weirdSubscriptFormat string) (float64, error) {
 		return strings.Repeat(toRepeat, repeatCount)
 	})
 	fmt.Println("converted to:", expanded)
+	deRuner(&expanded)
 	return strconv.ParseFloat(expanded, 64)
 }
 
@@ -84,36 +89,87 @@ func isValidFloatAndLetter(input string) bool {
 }
 
 func convertFloatAndLetter(input string) (float64, error) {
-	if isValidFloatAndLetter(input) {
-		// Find the letter in the input
-		var letter rune
-		for _, char := range input {
-			if char >= 'a' && char <= 'z' || char >= 'A' && char <= 'Z' {
-				letter = char
-				break
+	//if isValidFloatAndLetter(input) {
+	//	// Find the letter in the input
+	//	var letter rune
+	//	for _, char := range input {
+	//		if char >= 'a' && char <= 'z' || char >= 'A' && char <= 'Z' {
+	//			letter = char
+	//			break
+	//		}
+	//	}
+	//
+	//	// Extract the numeric part of the input
+	//	numericPart := strings.ReplaceAll(input, string(letter), "")
+	//	numericValue, err := strconv.ParseFloat(numericPart, 64)
+	//	if err != nil {
+	//		return 0, err
+	//	}
+	//
+	//	// Determine the multiplier based on the letter
+	//	multiplier := 1.0
+	//	switch letter {
+	//	case 'B', 'b':
+	//		multiplier = 1e9
+	//	case 'Q', 'q':
+	//		multiplier = 1e15
+	//		// Add more cases for other letters as needed
+	//	}
+	//
+	//	result := numericValue * multiplier
+	//	return result, nil
+	//}
+	//
+	//return 0, fmt.Errorf("invalid input %s", input)
+	//caseMap := make(map[string]string)
+	deRuner(&input)
+	inputSplit := strings.Split(input, " ")
+	if len(inputSplit) == 2 {
+		switch inputSplit[1] {
+		case "B":
+			floatValue, err := strconv.ParseFloat(inputSplit[0], 64)
+			if err != nil {
+				logrus.WithField("input", input).WithError(err).Errorf("cannot parse value: %s", inputSplit[0])
 			}
+			return floatValue * math.Pow(10, 9), nil
+		case "Q":
+			floatValue, err := strconv.ParseFloat(inputSplit[0], 64)
+			if err != nil {
+				logrus.WithField("input", input).WithError(err).Errorf("cannot parse value: %s", inputSplit[0])
+			}
+			return floatValue * math.Pow(10, 15), nil
+		case "M":
+			floatValue, err := strconv.ParseFloat(inputSplit[0], 64)
+			if err != nil {
+				logrus.WithField("input", input).WithError(err).Errorf("cannot parse value: %s", inputSplit[0])
+			}
+			return floatValue * math.Pow(10, 6), nil
+		default:
+			logrus.WithField("input", input).WithError(errors.New("input not matching case")).Errorf("cannot parse value: %s", inputSplit[0])
+			return 0, errors.New("input not matching case")
 		}
-
-		// Extract the numeric part of the input
-		numericPart := strings.ReplaceAll(input, string(letter), "")
-		numericValue, err := strconv.ParseFloat(numericPart, 64)
-		if err != nil {
-			return 0, err
-		}
-
-		// Determine the multiplier based on the letter
-		multiplier := 1.0
-		switch letter {
-		case 'B', 'b':
-			multiplier = 1e9
-		case 'Q', 'q':
-			multiplier = 1e15
-			// Add more cases for other letters as needed
-		}
-
-		result := numericValue * multiplier
-		return result, nil
+	} else {
+		return strconv.ParseFloat(input, 64)
 	}
 
-	return 0, fmt.Errorf("invalid input %s", input)
+	return 1, nil
+}
+
+func deRuner(text *string) {
+	newText := ""
+	for _, r := range *text {
+		parsed := runeToAscii(r)
+		newText = newText + parsed
+	}
+	*text = newText
+}
+
+func runeToAscii(r rune) string {
+	if r < 128 {
+		return string(r)
+	} else {
+		asciiString := "\\u" + strconv.FormatInt(int64(r), 16)
+		char, _ := strconv.Unquote(asciiString)
+		return char
+	}
 }
