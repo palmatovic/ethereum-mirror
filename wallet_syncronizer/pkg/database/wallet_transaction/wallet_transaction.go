@@ -11,6 +11,7 @@ func (WalletTransaction) TableName() string {
 
 type WalletTransaction struct {
 	TxType       string        `json:"tx_type" gorm:"column:TxType"`
+	TxHash       string        `json:"tx_hash" gorm:"column:TxHash"`
 	Price        float64       `json:"price" gorm:"column:Price;not null"`
 	Amount       float64       `json:"amount" gorm:"column:Amount"`
 	Total        float64       `json:"total" gorm:"column:Total;not null"`

@@ -30,8 +30,9 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 			bctx, err = browser.NewContext()
 			page, err = bctx.NewPage()
 			defer func() {
-				wg.Done()
+				_ = page.Close()
 				<-semaphore
+				wg.Done()
 			}()
 			if err != nil {
 				logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot open page")
@@ -238,56 +239,65 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 
 					}
 
-					//if colNum == 7 {
-					//
-					//	var colA = cols[colNum].Locator("xpath=/span/a")
-					//
-					//	err := colA.Click()
-					//	if err != nil {
-					//		return
-					//	}
-					//
-					//	newPageInterface, err := browser.Contexts()[0].WaitForEvent("page")
-					//	if err != nil {
-					//		return
-					//	}
-					//	np := newPageInterface.(playwright.Page)
-					//
-					//	xpathActionsContainer := "//div[@id='wrapperContent']"
-					//	xpathActions := "xpath=/div/div"
-					//	//np = browser.Contexts()[0].Pages()[0]
-					//
-					//	ac := np.Locator(xpathActionsContainer)
-					//	allActions, err := ac.Locator(xpathActions).All()
-					//	if err != nil {
-					//		return
-					//	}
-					//
-					//	var steps [][]string
-					//	for _, aa := range allActions {
-					//		var step []string
-					//		txts, err := aa.InnerText()
-					//		if err != nil {
-					//			return
-					//		}
-					//		fromString := strings.Split(txts, "\n")[0]
-					//
-					//		step = append(step, txts)
-					//		steps = append(steps, step)
-					//	}
-					//
-					//}
+					if colNum == 7 {
+
+						var colA = cols[colNum].Locator("xpath=/span/a")
+						thxLink, err := colA.GetAttribute("href")
+						if err != nil {
+							return
+						}
+
+						tlp := strings.Split(thxLink, "/")
+						at.TxHash = tlp[len(tlp)-1]
+						println(at.TxHash)
+						//xpathActionsContainer := "//div[@id='wrapperContent']"
+						//xpathActions := "xpath=/div/div"
+						////np = browser.Contexts()[0].Pages()[0]
+						//
+						//ac := np.Locator(xpathActionsContainer)
+						//allActions, err := ac.Locator(xpathActions).All()
+						//if err != nil {
+						//	return
+						//}
+						//
+						//var steps [][]string
+						//for _, aa := range allActions {
+						//	var step []string
+						//	txts, err := aa.InnerText()
+						//	if err != nil {
+						//		return
+						//	}
+						//	fromString := strings.Split(txts, "\n")[0]
+						//
+						//	step = append(step, txts)
+						//	steps = append(steps, step)
+						//}
+
+					}
 
 				}
 				ats = append(ats, at)
 			}
-			err = db.Create(&ats).Error
-			if err != nil {
-				logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("failed to create wallet transactions")
-				return
+			if len(ats) > 0 {
+				err = db.Create(&ats).Error
+				if err != nil {
+					logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("failed to create wallet transactions")
+					return
+				}
 			}
 		}(wt)
 	}
 	wg.Wait()
 	return
+}
+
+func FindOrCreateWalletTransactionByLiquidityPool(db *gorm.DB, walletTokens []wallet_token.WalletToken, browser playwright.Browser) (err error) {
+
+	//fai scraping per prendere i pool di liquidità e per ogni pool avvia la funzione sotto
+	err = FindOrCreateWalletTransactions(db, walletTokens, browser)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }

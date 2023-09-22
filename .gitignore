@@ -1,13 +1,6 @@
-/wallet_syncronizer_old/.idea/
 /order_executor/.vscode
 /order_executor/.idea/
 /order_executor/.vscode/*
 /.idea/
-.idea/sonarlint/issuestore/index.pb
-.idea/sonarlint/securityhotspotstore/index.pb
-.idea/sonarlint/securityhotspotstore/index.pb
-.idea/sonarlint/issuestore/index.pb
-*.pb
-.idea/sonarlint/securityhotspotstore/index.pb
-.idea/sonarlint/issuestore/index.pb
-.idea/ethereum-mirror.iml
+/wallet.db
+/wallet_syncronizer/.idea/
