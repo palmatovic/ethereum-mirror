@@ -249,7 +249,6 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 
 						tlp := strings.Split(thxLink, "/")
 						at.TxHash = tlp[len(tlp)-1]
-						println(at.TxHash)
 						//xpathActionsContainer := "//div[@id='wrapperContent']"
 						//xpathActions := "xpath=/div/div"
 						////np = browser.Contexts()[0].Pages()[0]

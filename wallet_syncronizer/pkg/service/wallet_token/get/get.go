@@ -23,7 +23,7 @@ func NewService(db *gorm.DB, walletId, tokenId string) *Service {
 
 func (s Service) Get() (status int, walletToken *wallet_token_db.WalletToken, err error) {
 	walletToken = new(wallet_token_db.WalletToken)
-	if err = s.db.Where("WalletId = ? AND TokenId", s.walletId, s.tokenId).First(walletToken).Error; err != nil {
+	if err = s.db.Where("WalletId = ? AND TokenId = ?", s.walletId, s.tokenId).First(walletToken).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return fiber.StatusNotFound, nil, err
 		} else {
