@@ -18,14 +18,13 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 		concurrentGoroutines = 10
 		semaphore            = make(chan struct{}, concurrentGoroutines)
 		wg                   sync.WaitGroup
-		mutex                sync.Mutex
 	)
-	var ats []wallet_transaction.WalletTransaction
 
 	for _, wt := range walletTokens {
 		semaphore <- struct{}{}
 		wg.Add(1)
 		go func(walletToken wallet_token.WalletToken) {
+			var ats []wallet_transaction.WalletTransaction
 			var page playwright.Page
 			var bctx playwright.BrowserContext
 			bctx, err = browser.NewContext()
@@ -280,12 +279,15 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 					//}
 
 				}
-				mutex.Lock()
 				ats = append(ats, at)
-				mutex.Unlock()
+			}
+			err = db.Create(&ats).Error
+			if err != nil {
+				logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("failed to create wallet transactions")
+				return
 			}
 		}(wt)
 	}
 	wg.Wait()
-	return db.Create(&ats).Error
+	return
 }
