@@ -9,25 +9,29 @@ import (
 )
 
 type Api struct {
-	db            *gorm.DB
-	walletTokenId string
-	fields        logrus.Fields
+	db       *gorm.DB
+	walletId string
+	tokenId  string
+	fields   logrus.Fields
 }
 
-func NewApi(uuid string, url string, db *gorm.DB, walletTokenId string) *Api {
+func NewApi(uuid string, url string, db *gorm.DB, walletId string, tokenId string) *Api {
 	return &Api{
-		walletTokenId: walletTokenId,
-		db:            db,
-		fields:        logrus.Fields{"uuid": uuid, "url": url, "wallet_token_id": walletTokenId},
+		walletId: walletId,
+		db:       db,
+		fields:   logrus.Fields{"uuid": uuid, "url": url, "wallet_id": walletId, "token_id": tokenId},
 	}
 }
 
 func (a *Api) Get() (status int, response interface{}) {
 	logrus.WithFields(a.fields).Info("started")
-	if len(a.walletTokenId) == 0 {
+	if len(a.walletId) == 0 {
+		return fiber.StatusBadRequest, json.NewErrorResponse(fiber.StatusBadRequest, "empty wallet_id")
+	}
+	if len(a.tokenId) == 0 {
 		return fiber.StatusBadRequest, json.NewErrorResponse(fiber.StatusBadRequest, "empty token_id")
 	}
-	httpStatus, walletToken, err := wallet_token_get_service.NewService(a.db, a.walletTokenId).Get()
+	httpStatus, walletToken, err := wallet_token_get_service.NewService(a.db, a.walletId, a.tokenId).Get()
 	if err != nil {
 		logrus.WithFields(a.fields).WithError(err).Errorf("terminated with failure")
 		return httpStatus, json.NewErrorResponse(httpStatus, err.Error())

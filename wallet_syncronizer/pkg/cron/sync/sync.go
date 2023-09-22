@@ -8,18 +8,25 @@ import (
 	"time"
 	"wallet-syncronizer/pkg/database/wallet"
 	wallet_find_or_create_service "wallet-syncronizer/pkg/service/wallet/find_or_create"
-	wallet_token_service "wallet-syncronizer/pkg/service/wallet_token"
+	wallet_token_service "wallet-syncronizer/pkg/service/wallet_token/find_or_create"
 	wallet_transaction_service "wallet-syncronizer/pkg/service/wallet_transaction"
 )
 
-type Env struct {
+type Sync struct {
 	Browser       playwright.Browser
 	Database      *gorm.DB
-	Wallets       []string
 	AlchemyApiKey string
 }
 
-func (e *Env) Sync() {
+func NewSync(browser playwright.Browser, db *gorm.DB, alchemyApiKey string) *Sync {
+	return &Sync{
+		Browser:       browser,
+		Database:      db,
+		AlchemyApiKey: alchemyApiKey,
+	}
+}
+
+func (e *Sync) Sync() {
 	var wallets []wallet.Wallet
 
 	if err := e.Database.Find(&wallets).Error; err != nil {
@@ -49,7 +56,7 @@ func (e *Env) Sync() {
 				return
 			}
 
-			walletTokens, err := wallet_token_service.FindOrCreateWalletTokens(*wall, e.Database, e.AlchemyApiKey)
+			walletTokens, err := wallet_token_service.NewService(e.Database, e.AlchemyApiKey, *wall).FindOrCreateWalletTokens()
 			if err != nil {
 				logrus.WithError(err).Error("cannot find or create wallet tokens")
 				return

@@ -127,7 +127,7 @@ func initializeFiberApp(db *gorm.DB) *fiber.App {
 	app.Get(wallet_token_url.Get, walletTokenApi.Get)
 	app.Get(wallet_token_url.List, walletTokenApi.List)
 	app.Get(wallet_transaction_url.Get, walletTransactionApi.Get)
-	app.Get(wallet_transaction_url.GetList, walletTransactionApi.List)
+	app.Get(wallet_transaction_url.List, walletTransactionApi.List)
 
 	return app
 }
@@ -147,9 +147,7 @@ func startCronJob(db *gorm.DB, browserPath string, pwHeadless bool, apiKey strin
 	defer func(pw *playwright.Playwright) {
 		_ = pw.Stop()
 	}(pw)
-
-	c := syncronizer.Env{Browser: initializeBrowser(pw, browserPath, pwHeadless), Database: db, AlchemyApiKey: apiKey}
-	runCronJob(c, interval)
+	runCronJob(syncronizer.NewSync(initializeBrowser(pw, browserPath, pwHeadless), db, apiKey), interval)
 }
 
 func initializePlaywright() (*playwright.Playwright, error) {
@@ -176,7 +174,7 @@ func initializeBrowser(pw *playwright.Playwright, browserPath string, headless b
 	return browser
 }
 
-func runCronJob(c syncronizer.Env, interval int) {
+func runCronJob(c *syncronizer.Sync, interval int) {
 	var mutex sync.Mutex
 	s := gocron.NewScheduler(time.Local)
 

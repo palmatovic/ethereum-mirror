@@ -5,7 +5,8 @@ import (
 	"gorm.io/gorm"
 	"wallet-syncronizer/pkg/api/wallet_token/get"
 	list "wallet-syncronizer/pkg/api/wallet_token/list"
-	"wallet-syncronizer/pkg/util/url/wallet_token"
+	token_url "wallet-syncronizer/pkg/util/url/token"
+	wallet_url "wallet-syncronizer/pkg/util/url/wallet"
 )
 
 type Env struct {
@@ -17,7 +18,7 @@ func NewEnv(db *gorm.DB) *Env {
 }
 
 func (e *Env) Get(ctx *fiber.Ctx) error {
-	status, response := get.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Params(string(wallet_token.Id))).Get()
+	status, response := get.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Params(string(wallet_url.Id)), ctx.Params(string(token_url.Id))).Get()
 	return ctx.Status(status).JSON(response)
 }
 
