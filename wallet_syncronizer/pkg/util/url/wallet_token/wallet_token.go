@@ -13,4 +13,4 @@ const (
 
 type Parameter string
 
-const Id Parameter = ":wallet_token_id"
+const Id Parameter = "wallet_token_id"
