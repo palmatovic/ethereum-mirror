@@ -19,19 +19,3 @@ type Token struct {
 func (Token) TableName() string {
 	return "Token"
 }
-
-func (t *Token) GetColumnName(field interface{}) string {
-	v := reflect.ValueOf(t).Elem()
-	for i := 0; i < v.NumField(); i++ {
-		if reflect.DeepEqual(v.Field(i).Interface(), reflect.ValueOf(field).Elem().Interface()) {
-			tag := v.Type().Field(i).Tag.Get("gorm")
-			parts := strings.Split(tag, ";")
-			for _, part := range parts {
-				if strings.HasPrefix(part, "column:") {
-					return strings.TrimPrefix(part, "column:")
-				}
-			}
-		}
-	}
-	return ""
-}
