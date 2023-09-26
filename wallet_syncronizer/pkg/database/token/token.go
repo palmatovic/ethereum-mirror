@@ -1,8 +1,6 @@
 package token
 
 import (
-	"reflect"
-	"strings"
 	"time"
 )
 

@@ -26,10 +26,10 @@ module.exports = (sequelize) => {
             type: DataTypes.STRING,
         },
         GoPlusResponse: {
-            type: DataTypes.BLOB, // Assuming it's binary data
+            type: DataTypes.JSONB,
         },
     }, {
         tableName: 'Token',
-        timestamps: false, // You can set this to true if you want timestamps
+        timestamps: true, // You can set this to true if you want timestamps
     });
 };
