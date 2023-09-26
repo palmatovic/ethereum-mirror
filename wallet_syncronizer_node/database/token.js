@@ -30,6 +30,6 @@ module.exports = (sequelize) => {
         },
     }, {
         tableName: 'Token',
-        timestamps: true, // You can set this to true if you want timestamps
+        timestamps: false, // You can set this to true if you want timestamps
     });
 };
