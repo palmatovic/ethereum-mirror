@@ -1,13 +1,23 @@
 {
+  "scripts": {
+    "start": "node start.js"
+  },
   "name": "wallet_syncronizer_node",
   "version": "1.0.0",
   "dependencies": {
+    "compression": "^1.7.4",
+    "dotenv": "^16.3.1",
     "express": "^4.18.2",
+    "express-rate-limit": "^7.0.2",
+    "express-validator": "^7.0.1",
+    "helmet": "^7.0.0",
     "log4js": "^6.9.1",
+    "morgan": "^1.10.0",
     "node-cron": "^3.0.2",
     "playwright": "^1.38.1",
     "sequelize": "^6.33.0",
     "sqlite3": "^5.1.6",
-    "uuid": "^9.0.1"
+    "uuid": "^9.0.1",
+    "winston": "^3.10.0"
   }
 }
