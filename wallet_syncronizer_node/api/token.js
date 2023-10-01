@@ -7,12 +7,11 @@ module.exports = (sequelize, logger) => {
         const tokenId = req.params.token_id;
 
         try {
-            // Validate tokenId as a string with a minimum length of 1 character
-            if (typeof tokenId !== 'string' || tokenId.length < 1) {
-                return res.status(400).json({ error: 'TokenId must be a non-empty string' });
+            if (!tokenId || typeof tokenId !== 'string' || tokenId.trim().length === 0) {
+                return res.status(400).json({ error: 'token_id must be a non-empty string' });
             }
 
-            const token = await tokenService.get(tokenId)
+            const token = await tokenService.get(tokenId);
 
             if (token) {
                 res.json(token);
