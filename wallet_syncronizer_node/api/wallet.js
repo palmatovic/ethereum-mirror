@@ -58,8 +58,57 @@ module.exports = (sequelize, logger) => {
         }
     };
 
+    const update = async (req, res) => {
+        let updatedWallet;
+        try {
+            const walletId = req.body.wallet_id;
+
+            if (!walletId || typeof walletId !== 'string' || walletId.trim().length === 0) {
+                return res.status(400).json({error: 'wallet_id is a mandatory field and must be a non-empty string'});
+            }
+
+            // Check if the wallet with the given ID already exists
+            const existingWallet = await walletService.get(walletId);
+
+            if (existingWallet) {
+                updatedWallet = await walletService.update(existingWallet, req.body);
+                res.json(updatedWallet);
+            } else {
+                res.status(404).json({error: 'wallet not found'});
+            }
+        } catch (error) {
+            logger.error('Internal server error:', error);
+            res.status(500).json({error: 'Internal server error'});
+        }
+    };
+
+    const deleteWallet = async (req, res) => {
+        try {
+            const walletId = req.params.wallet_id;
+
+            if (!walletId || typeof walletId !== 'string' || walletId.trim().length === 0) {
+                return res.status(400).json({ error: 'wallet_id must be a non-empty string' });
+            }
+
+            // Check if the wallet with the given ID exists
+            const existingWallet = await walletService.get(walletId);
+
+            if (existingWallet) {
+                await walletService.deleteWallet(existingWallet);
+                res.json({ message: 'wallet deleted successfully' });
+            } else {
+                res.status(404).json({ error: 'wallet not found' });
+            }
+        } catch (error) {
+            logger.error('Internal server error:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    };
+
     return {
         create,
+        update,
+        deleteWallet,
         get,
         list
     };

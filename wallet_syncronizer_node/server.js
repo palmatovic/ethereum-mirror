@@ -4,7 +4,8 @@ require('dotenv').config();
 const express = require('express');
 const { Sequelize } = require('sequelize');
 const helmet = require('helmet'); // Security middleware
-const winston = require('winston'); // For advanced logging
+const winston = require('winston');
+const uuid = require("uuid"); // For advanced logging
 
 // Logger configuration
 const logger = winston.createLogger({
@@ -43,6 +44,10 @@ async function startServer() {
     // Middleware
     app.use(express.json());
     app.use(helmet()); // Use Helmet security middleware
+    app.use((req, res, next) => {
+        req.requestId = uuid.v4();
+        next();
+    });
 
     // Routes
     app.get('/token/list', tokenApi.list);
@@ -50,6 +55,11 @@ async function startServer() {
     app.get('/wallet/list', walletApi.list);
     app.get('/wallet/get/:wallet_id',walletApi.get)
     app.post('/wallet',walletApi.create)
+    app.put('/wallet',walletApi.update)
+    app.delete('/wallet/get/:wallet_id',walletApi.deleteWallet)
+
+
+
 
 
     const PORT = process.env.PORT || 3000;

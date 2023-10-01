@@ -4,6 +4,7 @@ module.exports = (sequelize, logger) => {
     const tokenService = require('../service/token')(sequelize);
 
     const get = async (req, res) => {
+        logger.info('received', req.baseUrl, req.requestId, req.params.token_id)
         const tokenId = req.params.token_id;
 
         try {
