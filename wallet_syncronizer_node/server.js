@@ -38,6 +38,7 @@ async function startServer() {
 
     // Initialize API with sequelize and logger
     const tokenApi = require('./api/token')(sequelize, logger);
+    const walletApi = require('./api/wallet')(sequelize, logger);
 
     // Middleware
     app.use(express.json());
@@ -46,6 +47,10 @@ async function startServer() {
     // Routes
     app.get('/token/list', tokenApi.list);
     app.get('/token/get/:token_id',tokenApi.get)
+    app.get('/wallet/list', walletApi.list);
+    app.get('/wallet/get/:wallet_id',walletApi.get)
+    app.post('/wallet',walletApi.create)
+
 
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {
