@@ -29,13 +29,15 @@ async function startServer() {
     try {
         await sequelize.authenticate();
         logger.info('Database connection established successfully.');
+        await sequelize.sync({alter: true})
+        logger.info('Database synchronized successfully')
     } catch (error) {
-        logger.error('Unable to connect to the database:', error);
+        logger.error('Unable to setup database:', error);
         process.exit(1);
     }
 
     // Initialize API with sequelize and logger
-    const tokenApi = require('./token_api')(sequelize, logger);
+    const tokenApi = require('./api/token')(sequelize, logger);
 
     // Middleware
     app.use(express.json());

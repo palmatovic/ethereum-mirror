@@ -1,7 +1,7 @@
-// token_api.js
+// token.js
 
 module.exports = (sequelize, logger) => {
-    const Token = require('./database/token')(sequelize);
+    const tokenService = require('../service/token')(sequelize);
 
     const get = async (req, res) => {
         const tokenId = req.params.tokenId;
@@ -12,7 +12,7 @@ module.exports = (sequelize, logger) => {
                 return res.status(400).json({ error: 'TokenId must be a non-empty string' });
             }
 
-            const token = await Token.findByPk(tokenId);
+            const token = await tokenService.get(tokenId)
 
             if (token) {
                 res.json(token);
