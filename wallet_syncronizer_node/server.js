@@ -44,7 +44,8 @@ async function startServer() {
     app.use(helmet()); // Use Helmet security middleware
 
     // Routes
-    app.get('/tokens/:tokenId', tokenApi.get);
+    app.get('/token/list', tokenApi.list);
+    app.get('/token/get/:token_id',tokenApi.get)
 
     const PORT = process.env.PORT || 3000;
     app.listen(PORT, () => {

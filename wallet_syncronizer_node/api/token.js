@@ -4,7 +4,7 @@ module.exports = (sequelize, logger) => {
     const tokenService = require('../service/token')(sequelize);
 
     const get = async (req, res) => {
-        const tokenId = req.params.tokenId;
+        const tokenId = req.params.token_id;
 
         try {
             // Validate tokenId as a string with a minimum length of 1 character
@@ -25,7 +25,18 @@ module.exports = (sequelize, logger) => {
         }
     };
 
+    const list = async (req, res) => {
+        try {
+            const tokens = await tokenService.list();
+            res.json(tokens);
+        } catch (error) {
+            logger.error('Internal server error:', error);
+            res.status(500).json({ error: 'Internal server error' });
+        }
+    };
+
     return {
         get,
+        list
     };
 };

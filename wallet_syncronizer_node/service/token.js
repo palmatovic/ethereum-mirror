@@ -1,16 +1,30 @@
 module.exports = (sequelize,logger) => {
+    const Token = require('../database/token')(sequelize)
+
     const get = async (tokenId) => {
-        let token
+        let token;
         try {
-            const Token = require('../database/token')(sequelize)
-            token = await Token.findByPk(tokenId);
+            token = Token.findByPk(tokenId);
+            return token
         } catch (error) {
             logger.error('Internal server error:', error);
+            throw error
         }
-        return token
+    };
+
+    const list = async () => {
+        let tokens
+        try {
+            tokens = await Token.findAll();
+            return tokens
+        } catch (error) {
+            logger.error('Internal server error:', error);
+            throw error
+        }
     };
 
     return {
         get,
+        list,
     };
 };
