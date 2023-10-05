@@ -1,0 +1,40 @@
+{
+  "level": "info",
+  "msg": "sync started",
+  "time": "2023-10-05T22:31:38.110973231+02:00"
+}
+{
+  "level": "info",
+  "msg": "sync terminated in 3m36.444097403s",
+  "time": "2023-10-05T22:35:14.555245905+02:00"
+}
+{
+  "level": "info",
+  "msg": "sync started",
+  "time": "2023-10-05T22:35:14.555450434+02:00"
+}
+{
+  "level": "info",
+  "msg": "sync terminated in 2.084541041s",
+  "time": "2023-10-05T22:35:16.640143872+02:00"
+}
+{
+  "level": "info",
+  "msg": "sync started",
+  "time": "2023-10-05T22:35:38.111315981+02:00"
+}
+{
+  "level": "info",
+  "msg": "sync terminated in 1.232814057s",
+  "time": "2023-10-05T22:35:39.344281162+02:00"
+}
+{
+  "level": "info",
+  "msg": "sync started",
+  "time": "2023-10-05T22:36:38.111247682+02:00"
+}
+{
+  "level": "info",
+  "msg": "sync terminated in 1.271909036s",
+  "time": "2023-10-05T22:36:39.383324318+02:00"
+}
