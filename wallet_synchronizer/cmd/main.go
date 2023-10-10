@@ -4,12 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"github.com/gofiber/fiber/v2"
-	"os"
-	"strings"
-	"time"
-
 	"github.com/caarlos0/env/v6"
+	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
 	"github.com/google/uuid"
 	"github.com/playwright-community/playwright-go"
@@ -18,6 +14,9 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"os"
+	"strings"
+	"time"
 	token_api "wallet-synchronizer/pkg/api/token"
 	wallet_api "wallet-synchronizer/pkg/api/wallet"
 	wallet_token_api "wallet-synchronizer/pkg/api/wallet_token"
@@ -56,11 +55,11 @@ func main() {
 	var eg errgroup.Group
 
 	eg.Go(func() error {
-		return runCronJob(ctx, db, config.BrowserPath, config.PlaywrightHeadless, config.AlchemyAPIKey, config.ScrapeIntervalMinutes)
+		return runSyncJob(ctx, db, config.BrowserPath, config.PlaywrightHeadless, config.AlchemyAPIKey, config.ScrapeIntervalMinutes)
 	})
 
 	eg.Go(func() error {
-		return startFiberServer(ctx, db, config.FiberPort)
+		return runFiber(ctx, db, config.FiberPort)
 	})
 
 	if err := eg.Wait(); err != nil {
@@ -148,7 +147,7 @@ func initializeBrowser(pw *playwright.Playwright, browserPath string, headless b
 	return browser
 }
 
-func runCronJob(ctx context.Context, db *gorm.DB, browserPath string, headless bool, apiKey string, interval int) error {
+func runSyncJob(ctx context.Context, db *gorm.DB, browserPath string, headless bool, apiKey string, interval int) error {
 	pw, err := initializePlaywright()
 	if err != nil {
 		return err
@@ -201,16 +200,17 @@ func initializeFiberApp(db *gorm.DB) *fiber.App {
 }
 
 func registerAPIRoutes(app *fiber.App, db *gorm.DB) {
-	tokenApi := token_api.NewEnv(db)
-	walletApi := wallet_api.NewEnv(db)
-	walletTokenApi := wallet_token_api.NewEnv(db)
-	walletTransactionApi := wallet_transaction_api.NewEnv(db)
+	tokenApi := token_api.NewApi(db)
+	walletApi := wallet_api.NewApi(db)
+	walletTokenApi := wallet_token_api.NewApi(db)
+	walletTransactionApi := wallet_transaction_api.NewApi(db)
 
 	apiList := []struct {
 		method  string
 		path    string
 		handler fiber.Handler
 	}{
+		{"POST", token_url.GraphQL, tokenApi.GraphQL},
 		{"GET", token_url.Get, tokenApi.Get},
 		{"GET", token_url.List, tokenApi.List},
 		{"GET", wallet_url.Get, walletApi.Get},
@@ -229,7 +229,7 @@ func registerAPIRoutes(app *fiber.App, db *gorm.DB) {
 	}
 }
 
-func startFiberServer(ctx context.Context, db *gorm.DB, port int) error {
+func runFiber(ctx context.Context, db *gorm.DB, port int) error {
 	app := initializeFiberApp(db)
 	app.Server()
 

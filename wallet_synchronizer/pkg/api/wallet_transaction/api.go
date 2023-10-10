@@ -8,20 +8,20 @@ import (
 	"wallet-synchronizer/pkg/util/url/wallet_transaction"
 )
 
-type Env struct {
+type Api struct {
 	DB *gorm.DB
 }
 
-func NewEnv(db *gorm.DB) *Env {
-	return &Env{DB: db}
+func NewApi(db *gorm.DB) *Api {
+	return &Api{DB: db}
 }
 
-func (e *Env) Get(ctx *fiber.Ctx) error {
+func (e *Api) Get(ctx *fiber.Ctx) error {
 	status, response := get.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Params(string(wallet_transaction.Id))).Get()
 	return ctx.Status(status).JSON(response)
 }
 
-func (e *Env) List(ctx *fiber.Ctx) error {
+func (e *Api) List(ctx *fiber.Ctx) error {
 	status, response := list.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB).List()
 	return ctx.Status(status).JSON(response)
 }

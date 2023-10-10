@@ -7,8 +7,9 @@ import (
 const Resource = url.BaseUrl + "/token"
 
 const (
-	Get  = Resource + "/:" + string(Id)
-	List = Resource + "/list"
+	GraphQL = Resource + "/graphql"
+	Get     = Resource + "/get/:" + string(Id)
+	List    = Resource + "/list"
 )
 
 type Parameter string

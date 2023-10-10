@@ -1,6 +1,7 @@
 package get
 
 import (
+	"errors"
 	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -25,6 +26,7 @@ func NewApi(uuid string, url string, db *gorm.DB, tokenId string) *Api {
 func (a *Api) Get() (status int, response interface{}) {
 	logrus.WithFields(a.fields).Info("started")
 	if len(a.tokenId) == 0 {
+		logrus.WithFields(a.fields).WithError(errors.New("empty token_id")).Errorf("terminated with failure")
 		return fiber.StatusBadRequest, json.NewErrorResponse(fiber.StatusBadRequest, "empty token_id")
 	}
 	httpStatus, token, err := token_get_service.NewService(a.db, a.tokenId).Get()
