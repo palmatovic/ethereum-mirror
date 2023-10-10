@@ -64,7 +64,7 @@ func (e *Sync) Sync() {
 				return
 			}
 
-			err = wallet_transaction_service.FindOrCreateWalletTransactions2(e.Database, walletTokens, e.Browser)
+			err = wallet_transaction_service.FindOrCreateWalletTransactions(e.Database, walletTokens, e.Browser)
 			if err != nil {
 				logrus.WithError(err).Error("cannot find or create wallet transactions")
 				return

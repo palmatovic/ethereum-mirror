@@ -3,5 +3,5 @@
 /order_executor/.vscode/*
 /.idea/
 /wallet.db
-/wallet_syncronizer/.idea/
+/wallet_synchronizer/.idea/
 /node_modules/
