@@ -6,3 +6,4 @@
 /node_modules/
 /wallet_synchronizer/*.log
 /wallet_synchronizer/*.db
+/.idea/
