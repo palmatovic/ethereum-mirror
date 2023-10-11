@@ -131,7 +131,7 @@ func initializePlaywright() (*playwright.Playwright, error) {
 		return nil, err
 	}
 
-	if err := playwright.Install(&playwright.RunOptions{Verbose: false}); err != nil {
+	if err = playwright.Install(&playwright.RunOptions{Verbose: false}); err != nil {
 		return nil, err
 	}
 
@@ -213,11 +213,13 @@ func registerAPIRoutes(app *fiber.App, db *gorm.DB) {
 		{"POST", token_url.GraphQL, tokenApi.GraphQL},
 		{"GET", token_url.Get, tokenApi.Get},
 		{"GET", token_url.List, tokenApi.List},
+		//{"POST", wallet_url.GraphQL, walletApi.GraphQL},
 		{"GET", wallet_url.Get, walletApi.Get},
 		{"GET", wallet_url.List, walletApi.List},
 		{"POST", wallet_url.Create, walletApi.Create},
 		{"PUT", wallet_url.Update, walletApi.Update},
 		{"DELETE", wallet_url.Delete, walletApi.Delete},
+		//{"POST", wallet_token_url.GraphQL, walletTokenApi.GraphQL},
 		{"GET", wallet_token_url.Get, walletTokenApi.Get},
 		{"GET", wallet_token_url.List, walletTokenApi.List},
 		{"GET", wallet_transaction_url.Get, walletTransactionApi.Get},
