@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 	"wallet-synchronizer/pkg/api/wallet_transaction/get"
+	"wallet-synchronizer/pkg/api/wallet_transaction/graphql"
 	list "wallet-synchronizer/pkg/api/wallet_transaction/list"
 	"wallet-synchronizer/pkg/util/url/wallet_transaction"
 )
@@ -23,5 +24,10 @@ func (e *Api) Get(ctx *fiber.Ctx) error {
 
 func (e *Api) List(ctx *fiber.Ctx) error {
 	status, response := list.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB).List()
+	return ctx.Status(status).JSON(response)
+}
+
+func (e *Api) GraphQL(ctx *fiber.Ctx) error {
+	status, response := graphql.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, string(ctx.Body())).GraphQL()
 	return ctx.Status(status).JSON(response)
 }

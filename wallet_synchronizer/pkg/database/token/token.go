@@ -1,6 +1,8 @@
 package token
 
 import (
+	"encoding/json"
+	"github.com/graphql-go/graphql"
 	"time"
 )
 
@@ -17,3 +19,37 @@ type Token struct {
 func (Token) TableName() string {
 	return "Token"
 }
+
+var TokenGraphQL = graphql.NewObject(graphql.ObjectConfig{
+	Name: "token",
+	Fields: graphql.Fields{
+		"token_id": &graphql.Field{
+			Type: graphql.String,
+		},
+		"name": &graphql.Field{
+			Type: graphql.String,
+		},
+		"symbol": &graphql.Field{
+			Type: graphql.String,
+		},
+		"decimals": &graphql.Field{
+			Type: graphql.Int,
+		},
+		"created_at": &graphql.Field{
+			Type: graphql.DateTime,
+		},
+		"logo": &graphql.Field{
+			Type: graphql.String,
+		},
+		"go_plus_response": &graphql.Field{
+			Type: graphql.NewScalar(graphql.ScalarConfig{
+				Name: "Json",
+				Serialize: func(value interface{}) interface{} {
+					var serialized map[string]interface{}
+					_ = json.Unmarshal(value.([]byte), &serialized)
+					return serialized
+				},
+			}),
+		},
+	},
+})

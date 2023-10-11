@@ -1,0 +1,73 @@
+package graphql
+
+import (
+	"fmt"
+	"github.com/graphql-go/graphql"
+	"github.com/sirupsen/logrus"
+	"gorm.io/gorm"
+	wallet_db "wallet-synchronizer/pkg/database/wallet"
+	wallet_get_service "wallet-synchronizer/pkg/service/wallet/get"
+	wallet_list_service "wallet-synchronizer/pkg/service/wallet/list"
+	wallet_url "wallet-synchronizer/pkg/util/url/wallet"
+)
+
+type Service struct {
+	database *gorm.DB
+}
+
+func NewService(
+	database *gorm.DB,
+) *Service {
+	return &Service{
+		database: database,
+	}
+}
+
+func (s *Service) Schema() graphql.Schema {
+
+	var rootQuery = graphql.NewObject(graphql.ObjectConfig{
+		Name: "WalletQuery",
+		Fields: graphql.Fields{
+			"wallet": &graphql.Field{
+				Type: wallet_db.WalletGraphQL,
+				Args: graphql.FieldConfigArgument{
+					string(wallet_url.Id): &graphql.ArgumentConfig{Type: graphql.String},
+				},
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					walletId, ok := p.Args[string(wallet_url.Id)].(string)
+					if !ok || len(walletId) == 0 {
+						return nil, fmt.Errorf("%s must be evaluated as a string", string(wallet_url.Id))
+					}
+					var wallet *wallet_db.Wallet
+					var err error
+					_, wallet, err = wallet_get_service.NewService(s.database, walletId).Get()
+					if err != nil {
+						return nil, err
+					}
+					return wallet, nil
+				},
+			},
+			"wallets": &graphql.Field{
+				Type: graphql.NewList(wallet_db.WalletGraphQL),
+				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
+					var wallets *[]wallet_db.Wallet
+					var err error
+					_, wallets, err = wallet_list_service.NewService(s.database).List()
+					if err != nil {
+						return nil, err
+					}
+					return wallets, nil
+				},
+			},
+		},
+	})
+
+	var schema, err = graphql.NewSchema(graphql.SchemaConfig{
+		Query: rootQuery,
+	})
+	if err != nil {
+		logrus.WithError(err).Panic("failed to create wallet schema")
+	}
+
+	return schema
+}

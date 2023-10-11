@@ -1,6 +1,7 @@
 package wallet_token
 
 import (
+	"github.com/graphql-go/graphql"
 	"time"
 	token_db "wallet-synchronizer/pkg/database/token"
 	"wallet-synchronizer/pkg/database/wallet"
@@ -20,3 +21,28 @@ type WalletToken struct {
 	CreatedAt      time.Time      `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
 	UpdatedAt      time.Time      `json:"updated_at" gorm:"column:UpdatedAt;autoUpdateTime"`
 }
+
+var WalletTokenGraphQL = graphql.NewObject(graphql.ObjectConfig{
+	Name: "wallet_token",
+	Fields: graphql.Fields{
+		"wallet_id": &graphql.Field{
+			Type: graphql.String,
+		},
+		"token_id": &graphql.Field{
+			Type: graphql.String,
+		},
+		"token_amount": &graphql.Field{
+			Type: graphql.DateTime,
+		},
+
+		"token_amount_hex": &graphql.Field{
+			Type: graphql.DateTime,
+		},
+		"created_at": &graphql.Field{
+			Type: graphql.DateTime,
+		},
+		"updated_at": &graphql.Field{
+			Type: graphql.DateTime,
+		},
+	},
+})

@@ -1,13 +1,14 @@
 package graphql
 
 import (
-	"encoding/json"
+	"fmt"
 	"github.com/graphql-go/graphql"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	token_db "wallet-synchronizer/pkg/database/token"
 	token_get_service "wallet-synchronizer/pkg/service/token/get"
 	token_list_service "wallet-synchronizer/pkg/service/token/list"
+	token_url "wallet-synchronizer/pkg/util/url/token"
 )
 
 type Service struct {
@@ -22,65 +23,35 @@ func NewService(
 	}
 }
 
-var tokenType = graphql.NewObject(graphql.ObjectConfig{
-	Name: "token",
-	Fields: graphql.Fields{
-		"token_id": &graphql.Field{
-			Type: graphql.String,
-		},
-		"name": &graphql.Field{
-			Type: graphql.String,
-		},
-		"symbol": &graphql.Field{
-			Type: graphql.String,
-		},
-		"decimals": &graphql.Field{
-			Type: graphql.Int,
-		},
-		"created_at": &graphql.Field{
-			Type: graphql.DateTime,
-		},
-		"logo": &graphql.Field{
-			Type: graphql.String,
-		},
-		"go_plus_response": &graphql.Field{
-			Type: graphql.NewScalar(graphql.ScalarConfig{
-				Name: "Json",
-				Serialize: func(value interface{}) interface{} {
-					var serialized map[string]interface{}
-					_ = json.Unmarshal(value.([]byte), &serialized)
-					return serialized
-				},
-			}),
-		},
-	},
-})
-
 func (s *Service) Schema() graphql.Schema {
 
 	var rootQuery = graphql.NewObject(graphql.ObjectConfig{
 		Name: "TokenQuery",
 		Fields: graphql.Fields{
 			"token": &graphql.Field{
-				Type: tokenType,
+				Type: token_db.TokenGraphQL,
 				Args: graphql.FieldConfigArgument{
-					"token_id": &graphql.ArgumentConfig{Type: graphql.String},
+					string(token_url.Id): &graphql.ArgumentConfig{Type: graphql.String},
 				},
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
-					tokenId, ok := p.Args["token_id"].(string)
+					tokenId, ok := p.Args[string(token_url.Id)].(string)
+					if !ok || len(tokenId) == 0 {
+						return nil, fmt.Errorf("%s must be evaluated as a string", string(token_url.Id))
+					}
+
 					var token *token_db.Token
 					var err error
-					if ok {
-						_, token, err = token_get_service.NewService(s.database, tokenId).Get()
-						if err != nil {
-							return nil, err
-						}
+
+					_, token, err = token_get_service.NewService(s.database, tokenId).Get()
+					if err != nil {
+						return nil, err
 					}
+
 					return token, nil
 				},
 			},
 			"tokens": &graphql.Field{
-				Type: graphql.NewList(tokenType),
+				Type: graphql.NewList(token_db.TokenGraphQL),
 				Resolve: func(p graphql.ResolveParams) (interface{}, error) {
 					var tokens *[]token_db.Token
 					var err error

@@ -318,7 +318,7 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 					}
 
 					tlp := strings.Split(thxLink, "/")
-					at.TxHash = tlp[len(tlp)-1]
+					at.WalletTransactionId = tlp[len(tlp)-1]
 					//xpathActionsContainer := "//div[@id='wrapperContent']"
 					//xpathActions := "xpath=/div/div"
 					////np = browser.Contexts()[0].Pages()[0]
