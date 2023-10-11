@@ -32,11 +32,10 @@ var WalletTokenGraphQL = graphql.NewObject(graphql.ObjectConfig{
 			Type: graphql.String,
 		},
 		"token_amount": &graphql.Field{
-			Type: graphql.DateTime,
+			Type: graphql.Float,
 		},
-
 		"token_amount_hex": &graphql.Field{
-			Type: graphql.DateTime,
+			Type: graphql.String,
 		},
 		"created_at": &graphql.Field{
 			Type: graphql.DateTime,
