@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="SELECTIVE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="ecc1e7ba-5775-4b09-a677-18533018a183" name="Changes" comment="" />
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="PropertiesComponent"><![CDATA[{
+  "keyToString": {
+    "last_opened_file_path": "/home/ty000271/ethereum-mirror"
+  }
+}]]></component>
+  <component name="RunManager">
+    <configuration name="go build wallet-synchronizer/cmd" type="GoApplicationRunConfiguration" factoryName="Go Application" temporary="true" nameIsGenerated="true">
+      <module name="wallet_synchronizer" />
+      <working_directory value="$PROJECT_DIR$/../wallet_synchronizer" />
+      <kind value="PACKAGE" />
+      <package value="wallet-synchronizer/cmd" />
+      <directory value="$PROJECT_DIR$/../wallet_synchronizer" />
+      <filePath value="$PROJECT_DIR$/../wallet_synchronizer/cmd/main.go" />
+      <method v="2" />
+    </configuration>
+    <recent_temporary>
+      <list>
+        <item itemvalue="Go Build.go build wallet-synchronizer/cmd" />
+      </list>
+    </recent_temporary>
+  </component>
+  <component name="XDebuggerManager">
+    <breakpoint-manager>
+      <breakpoints>
+        <line-breakpoint enabled="true" type="DlvLineBreakpoint">
+          <url>file://$PROJECT_DIR$/../wallet_synchronizer/cmd/main.go</url>
+          <line>44</line>
+          <option name="timeStamp" value="8" />
+        </line-breakpoint>
+      </breakpoints>
+    </breakpoint-manager>
+  </component>
+</project>
