@@ -8,6 +8,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	wallet_transaction_graphql_service "wallet-synchronizer/pkg/service/wallet_transaction/graphql"
+	graphql_util "wallet-synchronizer/pkg/util/graphql"
 	json_util "wallet-synchronizer/pkg/util/json"
 )
 
@@ -39,9 +40,11 @@ func (a *Api) GraphQL() (status int, response interface{}) {
 	})
 
 	if len(result.Errors) > 0 {
+		gqlError := result.Errors[0]
+		statusCode := graphql_util.MapGraphQLErrorToHTTPStatus(&gqlError)
 		errB, _ := json.Marshal(result.Errors)
 		logrus.WithFields(a.fields).WithError(errors.New(string(errB))).Errorf("terminated with failure")
-		return fiber.StatusInternalServerError, json_util.NewErrorResponse(fiber.StatusInternalServerError, result.Errors)
+		return statusCode, json_util.NewErrorResponse(statusCode, result.Errors)
 	}
 
 	logrus.WithFields(a.fields).Info("terminated with success")
