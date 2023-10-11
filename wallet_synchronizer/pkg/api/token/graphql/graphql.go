@@ -41,7 +41,7 @@ func (a *Api) GraphQL() (status int, response interface{}) {
 	if len(result.Errors) > 0 {
 		errB, _ := json.Marshal(result.Errors)
 		logrus.WithFields(a.fields).WithError(errors.New(string(errB))).Errorf("terminated with failure")
-		return fiber.StatusInternalServerError, json_util.NewErrorResponse(fiber.StatusInternalServerError, string(errB))
+		return fiber.StatusInternalServerError, json_util.NewErrorResponse(fiber.StatusInternalServerError, result.Errors)
 	}
 
 	logrus.WithFields(a.fields).Info("terminated with success")

@@ -1,20 +1,20 @@
 package json
 
-import "github.com/gofiber/fiber/v2"
-
 type Response struct {
-	Error *fiber.Error `json:"error,omitempty"`
-	Data  interface{}  `json:"data,omitempty"`
+	Error *Error      `json:"error,omitempty"`
+	Data  interface{} `json:"data,omitempty"`
 }
 
-func NewErrorResponse(httpStatus int, message string) Response {
-	return Response{
-		Error: fiber.NewError(httpStatus, message),
-	}
+type Error struct {
+	Code   int         `json:"code"`
+	Detail interface{} `json:"detail"`
 }
 
-func NewSuccessResponse(data interface{}) Response {
+func NewErrorResponse(httpStatus int, detail interface{}) Response {
 	return Response{
-		Data: data,
+		Error: &Error{
+			Code:   httpStatus,
+			Detail: detail,
+		},
 	}
 }

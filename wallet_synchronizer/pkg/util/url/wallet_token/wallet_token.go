@@ -9,6 +9,7 @@ import (
 const Resource = url.BaseUrl + "/wallet-token"
 
 const (
-	Get  = Resource + "/:" + string(wallet_url.Id) + "/:" + string(token_url.Id)
-	List = Resource + "/list"
+	GraphQL = Resource + "/graphql"
+	Get     = Resource + "/get/:" + string(wallet_url.Id) + "/:" + string(token_url.Id)
+	List    = Resource + "/list"
 )

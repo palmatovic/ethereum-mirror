@@ -1,7 +1,8 @@
 /order_executor/.vscode
 /order_executor/.idea/
 /order_executor/.vscode/*
-/.idea/
 /wallet.db
 /wallet_synchronizer/.idea/
 /node_modules/
+/wallet_synchronizer/*.log
+/wallet_synchronizer/*.db
