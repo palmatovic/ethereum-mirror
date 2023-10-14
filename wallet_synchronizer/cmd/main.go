@@ -46,6 +46,7 @@ type AppConfig struct {
 	ScrapeIntervalMinutes int    `env:"SCRAPE_INTERVAL_MINUTES" envDefault:"1"`
 	LogLevel              string `env:"LOG_LEVEL" envDefault:"debug"`
 	LogFilePath           string `env:"LOG_FILE_PATH" envDefault:"./wallet_synchronizer.log"`
+	ConsoleLogEnable      bool   `env:"CONSOLE_LOG_ENABLE" envDefault:"true"`
 }
 
 func main() {
@@ -99,7 +100,12 @@ func initializeLogger(config AppConfig) {
 
 	logFile, err := os.OpenFile(config.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
 	if err == nil {
-		multiWriter := io.MultiWriter(logFile, os.Stdout)
+		var multiWriter io.Writer
+		if config.ConsoleLogEnable {
+			multiWriter = io.MultiWriter(logFile, os.Stdout)
+		} else {
+			multiWriter = io.MultiWriter(logFile)
+		}
 		logrus.SetOutput(multiWriter)
 	} else {
 		logrus.Warn("failed to log to file, using default stderr")

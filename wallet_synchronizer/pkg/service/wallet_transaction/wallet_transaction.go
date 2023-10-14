@@ -57,6 +57,7 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 
 			ats, err = FindOrCreateWalletTransactionByLiquidityPool(walletToken, page)
 			if err != nil {
+				logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("failed to create wallet transactions by liquidity pool")
 				return
 			}
 			if len(ats) > 0 {
