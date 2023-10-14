@@ -17,7 +17,13 @@ import (
 	"os"
 	"strings"
 	"time"
+	graph_api "wallet-synchronizer/pkg/api/graphql"
 	token_api "wallet-synchronizer/pkg/api/token"
+	token_graphql_schema "wallet-synchronizer/pkg/graphql/schema/token"
+	wallet_graphql_schema "wallet-synchronizer/pkg/graphql/schema/wallet"
+	wallet_token_graphql_schema "wallet-synchronizer/pkg/graphql/schema/wallet_token"
+	wallet_transaction_graphql_schema "wallet-synchronizer/pkg/graphql/schema/wallet_transaction"
+
 	wallet_api "wallet-synchronizer/pkg/api/wallet"
 	wallet_token_api "wallet-synchronizer/pkg/api/wallet_token"
 	wallet_transaction_api "wallet-synchronizer/pkg/api/wallet_transaction"
@@ -201,28 +207,35 @@ func initializeFiberApp(db *gorm.DB) *fiber.App {
 
 func registerAPIRoutes(app *fiber.App, db *gorm.DB) {
 	tokenApi := token_api.NewApi(db)
+	tokenGraphqlApi := graph_api.NewApi(token_graphql_schema.Schema(db))
+
 	walletApi := wallet_api.NewApi(db)
+	walletGraphqlApi := graph_api.NewApi(wallet_graphql_schema.Schema(db))
+
 	walletTokenApi := wallet_token_api.NewApi(db)
+	walletTokenGraphqlApi := graph_api.NewApi(wallet_token_graphql_schema.Schema(db))
+
 	walletTransactionApi := wallet_transaction_api.NewApi(db)
+	walletTransactionGraphqlApi := graph_api.NewApi(wallet_transaction_graphql_schema.Schema(db))
 
 	apiList := []struct {
 		method  string
 		path    string
 		handler fiber.Handler
 	}{
-		{"POST", token_url.GraphQL, tokenApi.GraphQL},
+		{"POST", token_url.GraphQL, tokenGraphqlApi.Post},
 		{"GET", token_url.Get, tokenApi.Get},
 		{"GET", token_url.List, tokenApi.List},
-		{"POST", wallet_url.GraphQL, walletApi.GraphQL},
+		{"POST", wallet_url.GraphQL, walletGraphqlApi.Post},
 		{"GET", wallet_url.Get, walletApi.Get},
 		{"GET", wallet_url.List, walletApi.List},
 		{"POST", wallet_url.Create, walletApi.Create},
 		//{"PUT", wallet_url.Update, walletApi.Update},
 		{"DELETE", wallet_url.Delete, walletApi.Delete},
-		{"POST", wallet_token_url.GraphQL, walletTokenApi.GraphQL},
+		{"POST", wallet_token_url.GraphQL, walletTokenGraphqlApi.Post},
 		{"GET", wallet_token_url.Get, walletTokenApi.Get},
 		{"GET", wallet_token_url.List, walletTokenApi.List},
-		{"POST", wallet_transaction_url.GraphQL, walletTransactionApi.GraphQL},
+		{"POST", wallet_transaction_url.GraphQL, walletTransactionGraphqlApi.Post},
 		{"GET", wallet_transaction_url.Get, walletTransactionApi.Get},
 		{"GET", wallet_transaction_url.List, walletTransactionApi.List},
 	}

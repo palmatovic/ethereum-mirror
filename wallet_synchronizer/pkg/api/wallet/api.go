@@ -6,7 +6,6 @@ import (
 	"wallet-synchronizer/pkg/api/wallet/create"
 	"wallet-synchronizer/pkg/api/wallet/delete"
 	"wallet-synchronizer/pkg/api/wallet/get"
-	"wallet-synchronizer/pkg/api/wallet/graphql"
 	list "wallet-synchronizer/pkg/api/wallet/list"
 	"wallet-synchronizer/pkg/api/wallet/update"
 	"wallet-synchronizer/pkg/util/url/wallet"
@@ -42,10 +41,5 @@ func (e *Api) Update(ctx *fiber.Ctx) error {
 
 func (e *Api) Delete(ctx *fiber.Ctx) error {
 	status, response := delete.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Params(string(wallet.Id))).Delete()
-	return ctx.Status(status).JSON(response)
-}
-
-func (e *Api) GraphQL(ctx *fiber.Ctx) error {
-	status, response := graphql.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, string(ctx.Body())).GraphQL()
 	return ctx.Status(status).JSON(response)
 }
