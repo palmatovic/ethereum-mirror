@@ -25,3 +25,10 @@ var WalletGraphQL = graphql.NewObject(graphql.ObjectConfig{
 		},
 	},
 })
+
+var CreateWalletGraphQL = graphql.NewInputObject(graphql.InputObjectConfig{
+	Name: "create_wallet",
+	Fields: graphql.InputObjectConfigFieldMap{
+		"wallet_id": &graphql.InputObjectFieldConfig{Type: graphql.NewNonNull(graphql.String)},
+	},
+})

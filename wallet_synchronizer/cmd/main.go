@@ -217,7 +217,7 @@ func registerAPIRoutes(app *fiber.App, db *gorm.DB) {
 		{"GET", wallet_url.Get, walletApi.Get},
 		{"GET", wallet_url.List, walletApi.List},
 		{"POST", wallet_url.Create, walletApi.Create},
-		{"PUT", wallet_url.Update, walletApi.Update},
+		//{"PUT", wallet_url.Update, walletApi.Update},
 		{"DELETE", wallet_url.Delete, walletApi.Delete},
 		{"POST", wallet_token_url.GraphQL, walletTokenApi.GraphQL},
 		{"GET", wallet_token_url.Get, walletTokenApi.Get},

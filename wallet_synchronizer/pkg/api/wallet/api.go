@@ -34,6 +34,7 @@ func (e *Api) Create(ctx *fiber.Ctx) error {
 	return ctx.Status(status).JSON(response)
 }
 
+// Deprecated
 func (e *Api) Update(ctx *fiber.Ctx) error {
 	status, response := update.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Body()).Update()
 	return ctx.Status(status).JSON(response)

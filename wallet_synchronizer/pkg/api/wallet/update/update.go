@@ -10,12 +10,14 @@ import (
 	util_json "wallet-synchronizer/pkg/util/json"
 )
 
+// Deprecated
 type Api struct {
 	db     *gorm.DB
 	body   []byte
 	fields logrus.Fields
 }
 
+// Deprecated
 func NewApi(uuid string, url string, db *gorm.DB, body []byte) *Api {
 	return &Api{
 		body:   body,
@@ -24,6 +26,7 @@ func NewApi(uuid string, url string, db *gorm.DB, body []byte) *Api {
 	}
 }
 
+// Deprecated
 func (a *Api) Update() (status int, response interface{}) {
 	logrus.WithFields(a.fields).Info("started")
 	var wallet wallet_db.Wallet
