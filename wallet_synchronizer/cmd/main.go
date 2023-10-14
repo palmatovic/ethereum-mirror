@@ -91,25 +91,22 @@ func initializeLogger(config AppConfig) {
 		PrettyPrint:       true,
 	})
 
-	// Set log level based on the configuration
 	logLevel, err := logrus.ParseLevel(config.LogLevel)
-	if err != nil {
-		logLevel = logrus.InfoLevel // Default to Info if the provided log level is invalid
-	}
+	handleError(err, "error during parse log level")
+
 	logrus.SetLevel(logLevel)
 
 	logFile, err := os.OpenFile(config.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-	if err == nil {
-		var multiWriter io.Writer
-		if config.ConsoleLogEnable {
-			multiWriter = io.MultiWriter(logFile, os.Stdout)
-		} else {
-			multiWriter = io.MultiWriter(logFile)
-		}
-		logrus.SetOutput(multiWriter)
+	handleError(err, "error during creation of log file")
+
+	var multiWriter io.Writer
+	if config.ConsoleLogEnable {
+		multiWriter = io.MultiWriter(logFile, os.Stdout)
 	} else {
-		logrus.Warn("failed to log to file, using default stderr")
+		multiWriter = io.MultiWriter(logFile)
 	}
+	logrus.SetOutput(multiWriter)
+
 }
 
 func initializeDatabase() *gorm.DB {
@@ -128,13 +125,10 @@ func migrateDatabase(db *gorm.DB) {
 
 func initializePlaywright() (*playwright.Playwright, error) {
 	pw, err := playwright.Run()
-	if err != nil {
-		return nil, err
-	}
+	handleError(err, "error during playwright initialization")
 
-	if err = playwright.Install(&playwright.RunOptions{Verbose: false}); err != nil {
-		return nil, err
-	}
+	err = playwright.Install(&playwright.RunOptions{Verbose: false})
+	handleError(err, "error during playwright installation")
 
 	return pw, nil
 }
@@ -150,9 +144,8 @@ func initializeBrowser(pw *playwright.Playwright, browserPath string, headless b
 
 func runSyncJob(ctx context.Context, db *gorm.DB, browserPath string, headless bool, apiKey string, interval int) error {
 	pw, err := initializePlaywright()
-	if err != nil {
-		return err
-	}
+	handleError(err, "error during playwright initialization")
+
 	defer func() {
 		if err := pw.Stop(); err != nil {
 			handleError(err, "error stopping Playwright")
@@ -249,12 +242,9 @@ func runFiber(ctx context.Context, db *gorm.DB, port int) error {
 	if err != nil {
 		select {
 		case <-ctx.Done():
-			// Application is shutting down, don't treat this as an error.
 			return nil
 		default:
-			// A real error occurred.
 			handleError(err, "cannot start Fiber server")
-			return err
 		}
 	}
 	return nil
