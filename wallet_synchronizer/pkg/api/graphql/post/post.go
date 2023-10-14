@@ -6,7 +6,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/graphql-go/graphql"
 	"github.com/sirupsen/logrus"
-	graphql_util "wallet-synchronizer/pkg/graphql"
+	graphql_util "wallet-synchronizer/pkg/graphql/util"
 	json_util "wallet-synchronizer/pkg/util/json"
 )
 
@@ -23,7 +23,7 @@ func NewApi(
 	query string,
 ) *Api {
 	return &Api{
-		fields: logrus.Fields{"uuid": uuid, "url": url, "query": query},
+		fields: logrus.Fields{"uuid": uuid, "url": url, "query": graphql_util.Stringify(query)},
 		schema: schema,
 		query:  query,
 	}

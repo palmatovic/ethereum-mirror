@@ -10,6 +10,7 @@ require (
 	github.com/google/uuid v1.3.1
 	github.com/graphql-go/graphql v0.8.1
 	github.com/playwright-community/playwright-go v0.3700.0
+	github.com/shurcooL/graphql v0.0.0-20230722043721-ed46e5a46466
 	github.com/sirupsen/logrus v1.9.3
 	golang.org/x/sync v0.3.0
 	gorm.io/driver/sqlite v1.5.3

@@ -1,5 +1,7 @@
 package json
 
+import "encoding/json"
+
 type Response struct {
 	Error *Error      `json:"error,omitempty"`
 	Data  interface{} `json:"data,omitempty"`
@@ -17,4 +19,12 @@ func NewErrorResponse(httpStatus int, detail interface{}) Response {
 			Detail: detail,
 		},
 	}
+}
+
+func Stringify(data []byte) string {
+	var outputMap map[string]interface{}
+	var outputBytes []byte
+	_ = json.Unmarshal(data, &outputMap)
+	outputBytes, _ = json.Marshal(outputMap)
+	return string(outputBytes)
 }

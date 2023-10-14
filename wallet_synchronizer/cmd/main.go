@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"github.com/caarlos0/env/v6"
 	"github.com/gofiber/fiber/v2"
@@ -14,6 +13,7 @@ import (
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -97,14 +97,12 @@ func initializeLogger(config AppConfig) {
 	}
 	logrus.SetLevel(logLevel)
 
-	// If LogFilePath is provided, log to a file
-	if config.LogFilePath != "" {
-		logFile, err := os.OpenFile(config.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
-		if err == nil {
-			logrus.SetOutput(logFile)
-		} else {
-			logrus.Warn("Failed to log to file, using default stderr")
-		}
+	logFile, err := os.OpenFile(config.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	if err == nil {
+		multiWriter := io.MultiWriter(logFile, os.Stdout)
+		logrus.SetOutput(multiWriter)
+	} else {
+		logrus.Warn("failed to log to file, using default stderr")
 	}
 }
 
@@ -120,15 +118,6 @@ func initializeDatabase() *gorm.DB {
 func migrateDatabase(db *gorm.DB) {
 	err := db.AutoMigrate(&wallet.Wallet{}, &token.Token{}, &wallet_token.WalletToken{}, &wallet_transaction.WalletTransaction{})
 	handleError(err, "error during migration of database")
-	// TODO:
-	// to be removed
-	if err = db.Where("WalletId = ?", "0x905615DE62BE9B1a6582843E8ceDeDB6BDA42367").First(&wallet.Wallet{}).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if err = db.Create(&wallet.Wallet{WalletId: "0x905615DE62BE9B1a6582843E8ceDeDB6BDA42367"}).Error; err != nil {
-				logrus.WithError(err).Fatalln("error during initial wallet setup")
-			}
-		}
-	}
 }
 
 func initializePlaywright() (*playwright.Playwright, error) {

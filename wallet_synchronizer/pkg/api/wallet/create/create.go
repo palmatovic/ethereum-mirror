@@ -20,7 +20,7 @@ func NewApi(uuid string, url string, db *gorm.DB, body []byte) *Api {
 	return &Api{
 		body:   body,
 		db:     db,
-		fields: logrus.Fields{"uuid": uuid, "url": url, "body": string(body)},
+		fields: logrus.Fields{"uuid": uuid, "url": url, "body": util_json.Stringify(body)},
 	}
 }
 
