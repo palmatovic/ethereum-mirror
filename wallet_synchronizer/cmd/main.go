@@ -36,7 +36,7 @@ type AppConfig struct {
 	PlaywrightHeadless    bool   `env:"PLAYWRIGHT_HEADLESS" envDefault:"true"`
 	AlchemyAPIKey         string `env:"ALCHEMY_API_KEY" envDefault:"owUCVigVvnHA63o0C6mh3yrf3jxMkV7b"`
 	FiberPort             int    `env:"FIBER_PORT" envDefault:"3000"`
-	BrowserPath           string `env:"BROWSER_PATH" envDefault:"/usr/bin/google-chrome"`
+	BrowserPath           string `env:"BROWSER_PATH" envDefault:"/usr/bin/brave-browser"`
 	ScrapeIntervalMinutes int    `env:"SCRAPE_INTERVAL_MINUTES" envDefault:"1"`
 	LogLevel              string `env:"LOG_LEVEL" envDefault:"debug"`
 	LogFilePath           string `env:"LOG_FILE_PATH" envDefault:"./wallet_synchronizer.log"`
