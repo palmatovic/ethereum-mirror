@@ -27,7 +27,7 @@ func NewService(db *gorm.DB, wallet *wallet_db.Wallet) *Service {
 func (s *Service) Create() (status int, wallet *wallet_db.Wallet, err error) {
 	// check if wallet is correct or exists on blockchain before creating
 	var ok bool
-	if ok, err = isValidWallet(wallet.WalletId); err != nil || !ok {
+	if ok, err = isValidWallet(s.wallet.WalletId); err != nil || !ok {
 		if err != nil {
 			return fiber.StatusInternalServerError, nil, err
 		}
