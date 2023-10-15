@@ -7,4 +7,4 @@
 /wallet_synchronizer/*.log
 /wallet_synchronizer/*.db
 /.idea/
-/wallet_syncronizer_node/
+/wallet_synchronizer_node/
