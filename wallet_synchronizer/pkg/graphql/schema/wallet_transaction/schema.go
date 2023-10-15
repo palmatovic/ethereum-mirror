@@ -8,7 +8,7 @@ import (
 	wallet_transaction_db "wallet-synchronizer/pkg/database/wallet_transaction"
 	wallet_transaction_get_service "wallet-synchronizer/pkg/service/wallet_transaction/get"
 	wallet_transaction_list_service "wallet-synchronizer/pkg/service/wallet_transaction/list"
-	wallet_transaction_url "wallet-synchronizer/pkg/util/url/wallet_transaction"
+	wallet_transaction_url "wallet-synchronizer/pkg/url/wallet_transaction"
 )
 
 func Schema(database *gorm.DB) graphql.Schema {

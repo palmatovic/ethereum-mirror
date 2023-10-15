@@ -23,6 +23,10 @@ import (
 	wallet_graphql_schema "wallet-synchronizer/pkg/graphql/schema/wallet"
 	wallet_token_graphql_schema "wallet-synchronizer/pkg/graphql/schema/wallet_token"
 	wallet_transaction_graphql_schema "wallet-synchronizer/pkg/graphql/schema/wallet_transaction"
+	token_url "wallet-synchronizer/pkg/url/token"
+	wallet_url "wallet-synchronizer/pkg/url/wallet"
+	wallet_token_url "wallet-synchronizer/pkg/url/wallet_token"
+	wallet_transaction_url "wallet-synchronizer/pkg/url/wallet_transaction"
 
 	wallet_api "wallet-synchronizer/pkg/api/wallet"
 	wallet_token_api "wallet-synchronizer/pkg/api/wallet_token"
@@ -32,10 +36,6 @@ import (
 	"wallet-synchronizer/pkg/database/wallet"
 	"wallet-synchronizer/pkg/database/wallet_token"
 	"wallet-synchronizer/pkg/database/wallet_transaction"
-	token_url "wallet-synchronizer/pkg/util/url/token"
-	wallet_url "wallet-synchronizer/pkg/util/url/wallet"
-	wallet_token_url "wallet-synchronizer/pkg/util/url/wallet_token"
-	wallet_transaction_url "wallet-synchronizer/pkg/util/url/wallet_transaction"
 )
 
 type AppConfig struct {

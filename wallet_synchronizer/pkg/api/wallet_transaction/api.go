@@ -5,7 +5,7 @@ import (
 	"gorm.io/gorm"
 	"wallet-synchronizer/pkg/api/wallet_transaction/get"
 	list "wallet-synchronizer/pkg/api/wallet_transaction/list"
-	"wallet-synchronizer/pkg/util/url/wallet_transaction"
+	"wallet-synchronizer/pkg/url/wallet_transaction"
 )
 
 type Api struct {

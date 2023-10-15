@@ -11,7 +11,7 @@ import (
 	wallet_create_service "wallet-synchronizer/pkg/service/wallet/create"
 	wallet_get_service "wallet-synchronizer/pkg/service/wallet/get"
 	wallet_list_service "wallet-synchronizer/pkg/service/wallet/list"
-	wallet_url "wallet-synchronizer/pkg/util/url/wallet"
+	wallet_url "wallet-synchronizer/pkg/url/wallet"
 )
 
 func Schema(database *gorm.DB) graphql.Schema {

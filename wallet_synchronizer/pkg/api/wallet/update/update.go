@@ -6,8 +6,8 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 	wallet_db "wallet-synchronizer/pkg/database/wallet"
+	util_json "wallet-synchronizer/pkg/model/json"
 	wallet_update_service "wallet-synchronizer/pkg/service/wallet/update"
-	util_json "wallet-synchronizer/pkg/util/json"
 )
 
 // Deprecated

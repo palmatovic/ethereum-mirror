@@ -9,7 +9,6 @@ import (
 	"time"
 	"wallet-synchronizer/pkg/database/wallet_token"
 	"wallet-synchronizer/pkg/database/wallet_transaction"
-	string2 "wallet-synchronizer/pkg/util/string"
 )
 
 func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.WalletToken, browser playwright.Browser) (err error) {
@@ -93,7 +92,7 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 		if err2 != nil {
 			return
 		}
-		string2.CleanText(&notFound)
+		CleanText(&notFound)
 		if strings.ToLower(notFound) == "not found" {
 			// aggiungi come scam token, anche se in realtà andrebbe filtrato a priori una volta ottenuti i dati da go plus
 			// nel service token
@@ -236,12 +235,12 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 					}
 					strPrice = strings.ReplaceAll(strPrice, ",", "")
 					strPrice = strings.ReplaceAll(strPrice, "$", "")
-					string2.CleanText(&strPrice)
-					at.Price, err = string2.ParseScript(strPrice)
+					CleanText(&strPrice)
+					at.Price, err = ParseScript(strPrice)
 					if err != nil {
 						//logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot parse price: %s, row %d column %d. trying to remove unicode spaces", strPrice, rowNum, colNum)
-						string2.CleanTextWithRemoveUnicodeSpaces(&strPrice)
-						at.Price, err = string2.ParseScript(strPrice)
+						CleanTextWithRemoveUnicodeSpaces(&strPrice)
+						at.Price, err = ParseScript(strPrice)
 						if err != nil {
 							logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot parse price %s: row %d column %d", strPrice, rowNum, colNum)
 							return nil, err
@@ -259,12 +258,12 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 					}
 					strAmount = strings.ReplaceAll(strAmount, ",", "")
 					strAmount = strings.ReplaceAll(strAmount, "$", "")
-					string2.CleanText(&strAmount)
-					at.Amount, err = string2.ParseScript(strAmount)
+					CleanText(&strAmount)
+					at.Amount, err = ParseScript(strAmount)
 					if err != nil {
 						//logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot parse amount: %s, row %d column %d. trying to remove unicode spaces", strAmount, rowNum, colNum)
-						string2.CleanTextWithRemoveUnicodeSpaces(&strAmount)
-						at.Amount, err = string2.ParseScript(strAmount)
+						CleanTextWithRemoveUnicodeSpaces(&strAmount)
+						at.Amount, err = ParseScript(strAmount)
 						if err != nil {
 							logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot parse amount %s: row %d column %d", strAmount, rowNum, colNum)
 							return nil, err
@@ -281,12 +280,12 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 					}
 					strTotal = strings.ReplaceAll(strTotal, ",", "")
 					strTotal = strings.ReplaceAll(strTotal, "$", "")
-					string2.CleanText(&strTotal)
-					at.Total, err = string2.ParseScript(strTotal)
+					CleanText(&strTotal)
+					at.Total, err = ParseScript(strTotal)
 					if err != nil {
 						//logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot parse total: %s, row %d column %d. trying to remove unicode spaces", strTotal, rowNum, colNum)
-						string2.CleanTextWithRemoveUnicodeSpaces(&strTotal)
-						at.Total, err = string2.ParseScript(strTotal)
+						CleanTextWithRemoveUnicodeSpaces(&strTotal)
+						at.Total, err = ParseScript(strTotal)
 						if err != nil {
 							logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot parse total %s: row %d column %d", strTotal, rowNum, colNum)
 							return nil, err

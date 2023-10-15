@@ -1,4 +1,4 @@
-package string
+package wallet_transaction
 
 import (
 	"fmt"

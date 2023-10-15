@@ -13,8 +13,7 @@ import (
 	wallet_token_create_service "wallet-synchronizer/pkg/service/wallet_token/create"
 	wallet_token_get_service "wallet-synchronizer/pkg/service/wallet_token/get"
 	wallet_token_update_service "wallet-synchronizer/pkg/service/wallet_token/update"
-
-	util_string "wallet-synchronizer/pkg/util/string"
+	util_string "wallet-synchronizer/pkg/service/wallet_transaction"
 )
 
 type Service struct {

@@ -1,7 +1,7 @@
 package wallet
 
 import (
-	"wallet-synchronizer/pkg/util/url"
+	"wallet-synchronizer/pkg/url"
 )
 
 const Resource = url.BaseUrl + "/wallet"

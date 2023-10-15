@@ -4,8 +4,8 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
+	"wallet-synchronizer/pkg/model/json"
 	token_list_service "wallet-synchronizer/pkg/service/token/list"
-	"wallet-synchronizer/pkg/util/json"
 )
 
 type Api struct {

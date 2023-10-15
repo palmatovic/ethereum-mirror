@@ -1,9 +1,9 @@
 package wallet_token
 
 import (
-	"wallet-synchronizer/pkg/util/url"
-	token_url "wallet-synchronizer/pkg/util/url/token"
-	wallet_url "wallet-synchronizer/pkg/util/url/wallet"
+	"wallet-synchronizer/pkg/url"
+	token_url "wallet-synchronizer/pkg/url/token"
+	wallet_url "wallet-synchronizer/pkg/url/wallet"
 )
 
 const Resource = url.BaseUrl + "/wallet-token"

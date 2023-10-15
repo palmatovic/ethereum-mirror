@@ -1,7 +1,7 @@
 package token
 
 import (
-	"wallet-synchronizer/pkg/util/url"
+	"wallet-synchronizer/pkg/url"
 )
 
 const Resource = url.BaseUrl + "/token"
