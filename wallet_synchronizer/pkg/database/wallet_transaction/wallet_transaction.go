@@ -13,6 +13,7 @@ func (WalletTransaction) TableName() string {
 type WalletTransaction struct {
 	WalletTransactionId string        `json:"tx_hash" gorm:"column:WalletTransactionId;primaryKey"`
 	TxType              string        `json:"tx_type" gorm:"column:TxType"`
+	Pool                string        `json:"pool" gorm:"column:Pool"`
 	Price               float64       `json:"price" gorm:"column:Price;not null"`
 	Amount              float64       `json:"amount" gorm:"column:Amount"`
 	Total               float64       `json:"total" gorm:"column:Total;not null"`
@@ -30,7 +31,10 @@ var WalletTransactionGraphQL = graphql.NewObject(graphql.ObjectConfig{
 			Type: graphql.String,
 		},
 		"tx_type": &graphql.Field{
-			Type: graphql.DateTime,
+			Type: graphql.String,
+		},
+		"pool": &graphql.Field{
+			Type: graphql.String,
 		},
 		"price": &graphql.Field{
 			Type: graphql.Float,
