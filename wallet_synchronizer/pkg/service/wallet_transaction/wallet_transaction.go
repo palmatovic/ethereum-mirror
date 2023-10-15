@@ -125,6 +125,11 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 				return nil, err
 			}
 		}
+		poolName, err := li.TextContent()
+		if err != nil {
+			return nil, err
+		}
+
 		err = li.Click()
 		if err != nil {
 			return nil, err
@@ -154,7 +159,7 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 		}
 
 		_ = page.Locator("xpath=//input[@placeholder='Address']").WaitFor(playwright.LocatorWaitForOptions{
-			Timeout: playwright.Float(2000),
+			Timeout: playwright.Float(10000),
 		})
 
 		page.WaitForTimeout(1000)
@@ -207,6 +212,7 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 			}
 
 			var at wallet_transaction.WalletTransaction
+			at.Pool = strings.Split(poolName, " ")[0]
 			at.WalletId = walletToken.WalletId
 			at.Asset = walletToken.TokenId
 

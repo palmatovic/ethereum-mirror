@@ -27,8 +27,17 @@ func (s *Service) ScamCheck() (response models.ResponseWrapperTokenSecurityResul
 		return response, err
 	}
 	var ok bool
-	response, ok = data.Payload.Result[s.tokenAddress]
 
+	response, ok = data.Payload.Result[s.tokenAddress]
+	/*
+		b, _ := json.Marshal(response)
+
+		var gpresp goplus.TokenSecurityResult
+		err = json.Unmarshal(b, &gpresp)
+		if err != nil {
+			return nil, err
+		}
+	*/
 	if ok {
 		return response, nil
 	} else {
