@@ -35,12 +35,25 @@ import (
 	"time"
 )
 
-type AppConfig struct {
-	FiberPort              int    `env:"FIBER_PORT" envDefault:"3000"`
-	SyncJobIntervalMinutes int    `env:"SYNC_JOB_INTERVAL_MINUTES" envDefault:"1"`
-	LogLevel               string `env:"LOG_LEVEL" envDefault:"debug"`
-	LogFilePath            string `env:"LOG_FILE_PATH" envDefault:"./auth.log"`
-	ConsoleLogEnable       bool   `env:"CONSOLE_LOG_ENABLE" envDefault:"true"`
+// servizio di login diviso per prodotto
+
+// /login/auth (dove si rilascia token per risorse di auth)
+// /login/productX -> eth-mirror (dove si rilascia token per risorse di productX)
+
+// la creazione di un prodotto "produce" aes256 e rsa256
+// salvare la chiave privata rsa256 a database encryptata
+// condividere la chiave aes256 e la chiave pubblica rsa256 in uscita
+
+type appConfig struct {
+	FiberPort                     int    `env:"FIBER_PORT" envDefault:"3000"`
+	SyncJobIntervalMinutes        int    `env:"SYNC_JOB_INTERVAL_MINUTES" envDefault:"1"`
+	LogLevel                      string `env:"LOG_LEVEL" envDefault:"debug"`
+	LogFilePath                   string `env:"LOG_FILE_PATH" envDefault:"./auth.log"`
+	ConsoleLogEnable              bool   `env:"CONSOLE_LOG_ENABLE" envDefault:"true"`
+	InitScriptFilepath            string `env:"INIT_SCRIPT_FILEPATH,required"`
+	AES256InitScriptEncryptionKey string `env:"AES_256_INIT_SCRIPT_ENCRYPTION_KEY,required"`
+	AuthJwtPublicKeyFilepath      string `env:"AES_JWT_PUBLIC_KEY_FILEPATH,required"`
+	AuthJwtPrivateKeyFilepath     string `env:"AES_JWT_PRIVATE_KEY_FILEPATH,required"`
 }
 
 func main() {
@@ -48,7 +61,11 @@ func main() {
 	initializeLogger(config)
 
 	db := initializeDatabase()
-	migrateDatabase(db)
+
+	initScript, err := crypto.NewKey(config.AES256InitScriptEncryptionKey).Decrypt()
+	handleError(err, "error during initialization sql script decryption")
+
+	migrateDatabase(db, initScript)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -68,8 +85,8 @@ func main() {
 	}
 }
 
-func loadAppConfig() AppConfig {
-	var config AppConfig
+func loadAppConfig() appConfig {
+	var config appConfig
 	if err := env.Parse(&config); err != nil {
 		handleError(err, "error during environment parsing")
 	}
@@ -77,7 +94,7 @@ func loadAppConfig() AppConfig {
 	return config
 }
 
-func initializeLogger(config AppConfig) {
+func initializeLogger(config appConfig) {
 	logrus.New()
 	logrus.SetFormatter(&logrus.JSONFormatter{
 		TimestampFormat:   time.RFC3339Nano,
@@ -112,7 +129,7 @@ func initializeDatabase() *gorm.DB {
 	return db
 }
 
-func migrateDatabase(db *gorm.DB) {
+func migrateDatabase(db *gorm.DB, initScript string) {
 	err := db.AutoMigrate(
 		&perm.Perm{},
 		&product.Product{},
@@ -124,6 +141,8 @@ func migrateDatabase(db *gorm.DB) {
 		&user_resource_perm.UserResourcePerm{},
 	)
 	handleError(err, "error during migration of database")
+	err = db.Exec(initScript).Error
+	handleError(err, "error during executing initialization script")
 }
 
 func runSyncJob(ctx context.Context, db *gorm.DB, interval int) error {
