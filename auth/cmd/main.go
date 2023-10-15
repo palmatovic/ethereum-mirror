@@ -160,38 +160,89 @@ func initializeFiberApp(db *gorm.DB) *fiber.App {
 }
 
 func registerAPIRoutes(app *fiber.App, db *gorm.DB) {
-	//tokenApi := token_api.NewApi(db)
-	//tokenGraphqlApi := graph_api.NewApi(token_graphql_schema.Schema(db))
-	//
-	//walletApi := wallet_api.NewApi(db)
-	//walletGraphqlApi := graph_api.NewApi(wallet_graphql_schema.Schema(db))
-	//
-	//walletTokenApi := wallet_token_api.NewApi(db)
-	//walletTokenGraphqlApi := graph_api.NewApi(wallet_token_graphql_schema.Schema(db))
-	//
-	//walletTransactionApi := wallet_transaction_api.NewApi(db)
-	//walletTransactionGraphqlApi := graph_api.NewApi(wallet_transaction_graphql_schema.Schema(db))
-	//
+	permApi := perm_api.NewApi(db)
+	permGraphQLApi := graphql_api.NewApi(perm_graphql_schema.Schema(db))
+
+	productApi := product_api.NewApi(db)
+	productGraphQLApi := graphql_api.NewApi(product_graphql_schema.Schema(db))
+
+	resourceApi := resource_api.NewApi(db)
+	resourceGraphQLApi := graphql_api.NewApi(resource_graphql_schema.Schema(db))
+
+	resourcePermApi := resource_perm_api.NewApi(db)
+	resourcePermGraphQLApi := graphql_api.NewApi(resource_perm_graphql_schema.Schema(db))
+
+	userApi := user_api.NewApi(db)
+	userGraphQLApi := graphql_api.NewApi(user_graphql_schema.Schema(db))
+
+	userProductApi := user_product_api.NewApi(db)
+	userProductGraphQLApi := graphql_api.NewApi(user_product_graphql_schema.Schema(db))
+
+	userResourceApi := user_resource_api.NewApi(db)
+	userResourceGraphQLApi := graphql_api.NewApi(user_resource_graphql_schema.Schema(db))
+
+	userResourcePermApi := user_resource_perm_api.NewApi(db)
+	userResourcePermGraphQLApi := graphql_api.NewApi(user_resource_perm_graphql_schema.Schema(db))
 	apiList := []struct {
 		method  string
 		path    string
 		handler fiber.Handler
 	}{
-		//{"POST", token_url.GraphQL, tokenGraphqlApi.Post},
-		//{"GET", token_url.Get, tokenApi.Get},
-		//{"GET", token_url.List, tokenApi.List},
-		//{"POST", wallet_url.GraphQL, walletGraphqlApi.Post},
-		//{"GET", wallet_url.Get, walletApi.Get},
-		//{"GET", wallet_url.List, walletApi.List},
-		//{"POST", wallet_url.Create, walletApi.Create},
-		////{"PUT", wallet_url.Update, walletApi.Update},
-		//{"DELETE", wallet_url.Delete, walletApi.Delete},
-		//{"POST", wallet_token_url.GraphQL, walletTokenGraphqlApi.Post},
-		//{"GET", wallet_token_url.Get, walletTokenApi.Get},
-		//{"GET", wallet_token_url.List, walletTokenApi.List},
-		//{"POST", wallet_transaction_url.GraphQL, walletTransactionGraphqlApi.Post},
-		//{"GET", wallet_transaction_url.Get, walletTransactionApi.Get},
-		//{"GET", wallet_transaction_url.List, walletTransactionApi.List},
+		{"POST", perm_url.GraphQL, permGraphQLApi.Post},
+		{"GET", perm_url.Get, permApi.Get},
+		{"GET", perm_url.List, permApi.List},
+		{"POST", perm_url.Create, permApi.Create},
+		{"PUT", perm_url.Update, permApi.Update},
+		{"DELETE", perm_url.Delete, permApi.Delete},
+
+		{"POST", product_url.GraphQL, productGraphQLApi.Post},
+		{"GET", product_url.Get, productApi.Get},
+		{"GET", product_url.List, productApi.List},
+		{"POST", product_url.Create, productApi.Create},
+		{"PUT", product_url.Update, productApi.Update},
+		{"DELETE", product_url.Delete, productApi.Delete},
+
+		{"POST", resource_url.GraphQL, resourceGraphQLApi.Post},
+		{"GET", resource_url.Get, resourceApi.Get},
+		{"GET", resource_url.List, resourceApi.List},
+		{"POST", resource_url.Create, resourceApi.Create},
+		{"PUT", resource_url.Update, resourceApi.Update},
+		{"DELETE", resource_url.Delete, resourceApi.Delete},
+
+		{"POST", resource_perm_url.GraphQL, resourcePermGraphQLApi.Post},
+		{"GET", resource_perm_url.Get, resourcePermApi.Get},
+		{"GET", resource_perm_url.List, resourcePermApi.List},
+		{"POST", resource_perm_url.Create, resourcePermApi.Create},
+		{"PUT", resource_perm_url.Update, resourcePermApi.Update},
+		{"DELETE", resource_perm_url.Delete, resourcePermApi.Delete},
+
+		{"POST", user_url.GraphQL, userGraphQLApi.Post},
+		{"GET", user_url.Get, userApi.Get},
+		{"GET", user_url.List, userApi.List},
+		{"POST", user_url.Create, userApi.Create},
+		{"PUT", user_url.Update, userApi.Update},
+		{"DELETE", user_url.Delete, userApi.Delete},
+
+		{"POST", user_product_url.GraphQL, userProductGraphQLApi.Post},
+		{"GET", user_product_url.Get, userProductApi.Get},
+		{"GET", user_product_url.List, userProductApi.List},
+		{"POST", user_product_url.Create, userProductApi.Create},
+		{"PUT", user_product_url.Update, userProductApi.Update},
+		{"DELETE", user_product_url.Delete, userProductApi.Delete},
+
+		{"POST", user_resource_url.GraphQL, userResourceGraphQLApi.Post},
+		{"GET", user_resource_url.Get, userResourceApi.Get},
+		{"GET", user_resource_url.List, userResourceApi.List},
+		{"POST", user_resource_url.Create, userResourceApi.Create},
+		{"PUT", user_resource_url.Update, userResourceApi.Update},
+		{"DELETE", user_resource_url.Delete, userResourceApi.Delete},
+
+		{"POST", user_resource_perm_url.GraphQL, userResourcePermGraphQLApi.Post},
+		{"GET", user_resource_perm_url.Get, userResourcePermApi.Get},
+		{"GET", user_resource_perm_url.List, userResourcePermApi.List},
+		{"POST", user_resource_perm_url.Create, userResourcePermApi.Create},
+		{"PUT", user_resource_perm_url.Update, userResourcePermApi.Update},
+		{"DELETE", user_resource_perm_url.Delete, userResourcePermApi.Delete},
 	}
 
 	for _, api := range apiList {

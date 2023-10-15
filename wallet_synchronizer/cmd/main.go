@@ -17,7 +17,7 @@ import (
 	"os"
 	"strings"
 	"time"
-	graph_api "wallet-synchronizer/pkg/api/graphql"
+	graphql_api "wallet-synchronizer/pkg/api/graphql"
 	token_api "wallet-synchronizer/pkg/api/token"
 	token_graphql_schema "wallet-synchronizer/pkg/graphql/schema/token"
 	wallet_graphql_schema "wallet-synchronizer/pkg/graphql/schema/wallet"
@@ -195,16 +195,16 @@ func initializeFiberApp(db *gorm.DB) *fiber.App {
 
 func registerAPIRoutes(app *fiber.App, db *gorm.DB) {
 	tokenApi := token_api.NewApi(db)
-	tokenGraphqlApi := graph_api.NewApi(token_graphql_schema.Schema(db))
+	tokenGraphqlApi := graphql_api.NewApi(token_graphql_schema.Schema(db))
 
 	walletApi := wallet_api.NewApi(db)
-	walletGraphqlApi := graph_api.NewApi(wallet_graphql_schema.Schema(db))
+	walletGraphqlApi := graphql_api.NewApi(wallet_graphql_schema.Schema(db))
 
 	walletTokenApi := wallet_token_api.NewApi(db)
-	walletTokenGraphqlApi := graph_api.NewApi(wallet_token_graphql_schema.Schema(db))
+	walletTokenGraphqlApi := graphql_api.NewApi(wallet_token_graphql_schema.Schema(db))
 
 	walletTransactionApi := wallet_transaction_api.NewApi(db)
-	walletTransactionGraphqlApi := graph_api.NewApi(wallet_transaction_graphql_schema.Schema(db))
+	walletTransactionGraphqlApi := graphql_api.NewApi(wallet_transaction_graphql_schema.Schema(db))
 
 	apiList := []struct {
 		method  string
