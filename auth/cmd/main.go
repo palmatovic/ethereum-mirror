@@ -2,6 +2,7 @@ package main
 
 import (
 	"auth/pkg/cron/sync"
+	"auth/pkg/crypto"
 	"auth/pkg/database/perm"
 	"auth/pkg/database/product"
 	"auth/pkg/database/resource"
@@ -37,7 +38,7 @@ import (
 
 // servizio di login diviso per prodotto
 
-// /login/auth (dove si rilascia token per risorse di auth)
+// /login (dove si rilascia token per risorse di auth)
 // /login/productX -> eth-mirror (dove si rilascia token per risorse di productX)
 
 // la creazione di un prodotto "produce" aes256 e rsa256
@@ -62,10 +63,10 @@ func main() {
 
 	db := initializeDatabase()
 
-	initScript, err := crypto.NewKey(config.AES256InitScriptEncryptionKey).Decrypt()
+	initScript, err := crypto.NewKey(config.AES256InitScriptEncryptionKey).DecryptFilepath(config.InitScriptFilepath)
 	handleError(err, "error during initialization sql script decryption")
 
-	migrateDatabase(db, initScript)
+	migrateDatabase(db, string(initScript)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
