@@ -2,7 +2,6 @@ package product
 
 import "time"
 
-// Auth non ha bisogno di salvare Rsa256PK
 type Product struct {
 	ProductId                   string    `json:"product_id" gorm:"column:ProductId;primaryKey"`
 	Rsa256PK                    string    `json:"-" gorm:"column:Rsa256PK"`

@@ -53,8 +53,13 @@ type appConfig struct {
 	ConsoleLogEnable              bool   `env:"CONSOLE_LOG_ENABLE" envDefault:"true"`
 	InitScriptFilepath            string `env:"INIT_SCRIPT_FILEPATH,required"`
 	AES256InitScriptEncryptionKey string `env:"AES_256_INIT_SCRIPT_ENCRYPTION_KEY,required"`
-	AuthJwtPublicKeyFilepath      string `env:"AES_JWT_PUBLIC_KEY_FILEPATH,required"`
-	AuthJwtPrivateKeyFilepath     string `env:"AES_JWT_PRIVATE_KEY_FILEPATH,required"`
+
+	AuthJwtPublicKeyFilepath  string `env:"AES_JWT_PUBLIC_KEY_FILEPATH,required"`
+	AuthJwtPrivateKeyFilepath string `env:"AES_JWT_PRIVATE_KEY_FILEPATH,required"`
+
+	OpenSSLGenerateCnfScriptFilepath   string `env:"OPENSSL_GENERATE_CNF_SCRIPT_FILEPATH,required"`
+	OpenSSLGenerateCertsScriptFilepath string `env:"OPENSSL_GENERATE_CERTS_SCRIPT_FILEPATH,required"`
+	RSA256GenerateScriptFilepath       string `env:"RSA256_GENERATE_SCRIPT_FILEPATH,required"`
 }
 
 func main() {
@@ -66,7 +71,7 @@ func main() {
 	initScript, err := crypto.NewKey(config.AES256InitScriptEncryptionKey).DecryptFilepath(config.InitScriptFilepath)
 	handleError(err, "error during initialization sql script decryption")
 
-	migrateDatabase(db, string(initScript)
+	migrateDatabase(db, string(initScript))
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
