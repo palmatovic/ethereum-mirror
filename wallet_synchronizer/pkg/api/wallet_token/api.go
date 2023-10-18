@@ -5,8 +5,8 @@ import (
 	"gorm.io/gorm"
 	"wallet-synchronizer/pkg/api/wallet_token/get"
 	list "wallet-synchronizer/pkg/api/wallet_token/list"
-	token_url "wallet-synchronizer/pkg/util/url/token"
-	wallet_url "wallet-synchronizer/pkg/util/url/wallet"
+	token_url "wallet-synchronizer/pkg/url/token"
+	wallet_url "wallet-synchronizer/pkg/url/wallet"
 )
 
 type Api struct {

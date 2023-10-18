@@ -7,7 +7,7 @@ import (
 	"github.com/graphql-go/graphql"
 	"github.com/sirupsen/logrus"
 	graphql_util "wallet-synchronizer/pkg/graphql/util"
-	json_util "wallet-synchronizer/pkg/util/json"
+	json_util "wallet-synchronizer/pkg/model/json"
 )
 
 type Api struct {

@@ -8,8 +8,8 @@ import (
 	wallet_token_db "wallet-synchronizer/pkg/database/wallet_token"
 	wallet_token_get_service "wallet-synchronizer/pkg/service/wallet_token/get"
 	wallet_token_list_service "wallet-synchronizer/pkg/service/wallet_token/list"
-	token_url "wallet-synchronizer/pkg/util/url/token"
-	wallet_url "wallet-synchronizer/pkg/util/url/wallet"
+	token_url "wallet-synchronizer/pkg/url/token"
+	wallet_url "wallet-synchronizer/pkg/url/wallet"
 )
 
 func Schema(database *gorm.DB) graphql.Schema {

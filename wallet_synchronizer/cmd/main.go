@@ -17,12 +17,16 @@ import (
 	"os"
 	"strings"
 	"time"
-	graph_api "wallet-synchronizer/pkg/api/graphql"
+	graphql_api "wallet-synchronizer/pkg/api/graphql"
 	token_api "wallet-synchronizer/pkg/api/token"
 	token_graphql_schema "wallet-synchronizer/pkg/graphql/schema/token"
 	wallet_graphql_schema "wallet-synchronizer/pkg/graphql/schema/wallet"
 	wallet_token_graphql_schema "wallet-synchronizer/pkg/graphql/schema/wallet_token"
 	wallet_transaction_graphql_schema "wallet-synchronizer/pkg/graphql/schema/wallet_transaction"
+	token_url "wallet-synchronizer/pkg/url/token"
+	wallet_url "wallet-synchronizer/pkg/url/wallet"
+	wallet_token_url "wallet-synchronizer/pkg/url/wallet_token"
+	wallet_transaction_url "wallet-synchronizer/pkg/url/wallet_transaction"
 
 	wallet_api "wallet-synchronizer/pkg/api/wallet"
 	wallet_token_api "wallet-synchronizer/pkg/api/wallet_token"
@@ -32,10 +36,6 @@ import (
 	"wallet-synchronizer/pkg/database/wallet"
 	"wallet-synchronizer/pkg/database/wallet_token"
 	"wallet-synchronizer/pkg/database/wallet_transaction"
-	token_url "wallet-synchronizer/pkg/util/url/token"
-	wallet_url "wallet-synchronizer/pkg/util/url/wallet"
-	wallet_token_url "wallet-synchronizer/pkg/util/url/wallet_token"
-	wallet_transaction_url "wallet-synchronizer/pkg/util/url/wallet_transaction"
 )
 
 type AppConfig struct {
@@ -195,16 +195,16 @@ func initializeFiberApp(db *gorm.DB) *fiber.App {
 
 func registerAPIRoutes(app *fiber.App, db *gorm.DB) {
 	tokenApi := token_api.NewApi(db)
-	tokenGraphqlApi := graph_api.NewApi(token_graphql_schema.Schema(db))
+	tokenGraphqlApi := graphql_api.NewApi(token_graphql_schema.Schema(db))
 
 	walletApi := wallet_api.NewApi(db)
-	walletGraphqlApi := graph_api.NewApi(wallet_graphql_schema.Schema(db))
+	walletGraphqlApi := graphql_api.NewApi(wallet_graphql_schema.Schema(db))
 
 	walletTokenApi := wallet_token_api.NewApi(db)
-	walletTokenGraphqlApi := graph_api.NewApi(wallet_token_graphql_schema.Schema(db))
+	walletTokenGraphqlApi := graphql_api.NewApi(wallet_token_graphql_schema.Schema(db))
 
 	walletTransactionApi := wallet_transaction_api.NewApi(db)
-	walletTransactionGraphqlApi := graph_api.NewApi(wallet_transaction_graphql_schema.Schema(db))
+	walletTransactionGraphqlApi := graphql_api.NewApi(wallet_transaction_graphql_schema.Schema(db))
 
 	apiList := []struct {
 		method  string

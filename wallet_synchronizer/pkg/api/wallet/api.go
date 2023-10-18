@@ -8,7 +8,7 @@ import (
 	"wallet-synchronizer/pkg/api/wallet/get"
 	list "wallet-synchronizer/pkg/api/wallet/list"
 	"wallet-synchronizer/pkg/api/wallet/update"
-	"wallet-synchronizer/pkg/util/url/wallet"
+	"wallet-synchronizer/pkg/url/wallet"
 )
 
 type Api struct {
