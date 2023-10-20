@@ -8,3 +8,4 @@
 /wallet_synchronizer/*.db
 /.idea/
 /wallet_synchronizer_node/
+/auth/.idea/
