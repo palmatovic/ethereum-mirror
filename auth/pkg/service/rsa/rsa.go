@@ -7,22 +7,19 @@ import (
 	"encoding/pem"
 )
 
-type Rsa struct {
-	baseName string
+type Rsa struct{}
+type Key []byte
+
+type Pair struct {
+	Private Key
+	Public  Key
 }
 
-type KeyPair struct {
-	PrivateKey string
-	PublicKey  string
+func NewRsa() *Rsa {
+	return &Rsa{}
 }
 
-func NewRsa(baseName string) *Rsa {
-	return &Rsa{
-		baseName: baseName,
-	}
-}
-
-func (r *Rsa) GenerateRSAKeys() (*KeyPair, error) {
+func (r *Rsa) GenerateRSAKeys() (*Pair, error) {
 	privateKey, err := rsa.GenerateKey(rand.Reader, 2048)
 	if err != nil {
 		return nil, err
@@ -33,17 +30,13 @@ func (r *Rsa) GenerateRSAKeys() (*KeyPair, error) {
 		Bytes: x509.MarshalPKCS1PrivateKey(privateKey),
 	}
 
-	privateKeyPEMString := string(pem.EncodeToMemory(privateKeyPEM))
-
 	publicKeyPEM, err := x509.MarshalPKIXPublicKey(&privateKey.PublicKey)
 	if err != nil {
 		return nil, err
 	}
 
-	publicKeyPEMString := string(pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: publicKeyPEM}))
-
-	return &KeyPair{
-		PrivateKey: privateKeyPEMString,
-		PublicKey:  publicKeyPEMString,
+	return &Pair{
+		Private: pem.EncodeToMemory(privateKeyPEM),
+		Public:  pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: publicKeyPEM}),
 	}, nil
 }

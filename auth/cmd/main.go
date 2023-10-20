@@ -2,7 +2,6 @@ package main
 
 import (
 	"auth/pkg/cron/sync"
-	"auth/pkg/crypto"
 	"auth/pkg/database/perm"
 	"auth/pkg/database/product"
 	"auth/pkg/database/resource"
@@ -11,6 +10,7 @@ import (
 	"auth/pkg/database/user_product"
 	"auth/pkg/database/user_resource"
 	"auth/pkg/database/user_resource_perm"
+	"auth/pkg/service/crypto"
 	perm_url "auth/pkg/url/perm"
 	resource_url "auth/pkg/url/perm"
 	product_url "auth/pkg/url/product"
