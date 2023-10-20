@@ -1,6 +1,7 @@
 package wallet_transaction
 
 import (
+	"fmt"
 	"github.com/playwright-community/playwright-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -18,6 +19,8 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 		semaphore            = make(chan struct{}, concurrentGoroutines)
 		wg                   sync.WaitGroup
 	)
+
+	fmt.Printf("wallet_tokens = %v\n", len(walletTokens))
 
 	for _, wt := range walletTokens {
 		semaphore <- struct{}{}
@@ -42,24 +45,23 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 			_, err = page.Goto("https://www.defined.fi/eth/" + walletToken.TokenId)
 			if err != nil {
 				logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot open page")
-				_ = page.Close()
 				return
 			}
 
-			err = page.WaitForLoadState()
+			err = doWait(&page, true, true, true)
 			if err != nil {
-				logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot wait for page")
-				_ = page.Close()
 				return
 			}
-			page.WaitForTimeout(2000)
 
 			ats, err = FindOrCreateWalletTransactionByLiquidityPool(walletToken, page)
 			if err != nil {
 				logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("failed to create wallet transactions by liquidity pool")
 				return
 			}
+			fmt.Printf("Found ats %v \n", ats)
 			if len(ats) > 0 {
+				fmt.Printf("Performin insertions for ats %v\n", ats)
+				fmt.Printf("ats inserted %d \n", len(ats))
 				err = db.Create(&ats).Error
 				if err != nil {
 					logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("failed to create wallet transactions")
@@ -76,41 +78,50 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.WalletToken, page playwright.Page) (ats []wallet_transaction.WalletTransaction, err error) {
 
 	//fai scraping per prendere i pool di liquidità e per ogni pool avvia la funzione sotto
+	page.WaitForTimeout(3000)
 
-	err = page.WaitForLoadState()
+	_, err = locatorWithRetryCombined(&page, "xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[2]/div[5]", 3)
+
+	//err = page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[2]/div[5]").WaitFor(playwright.LocatorWaitForOptions{
+	//	State:   playwright.WaitForSelectorStateAttached,
+	//	Timeout: playwright.Float(5000),
+	//})
+	//err = page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[2]/div[5]").WaitFor(playwright.LocatorWaitForOptions{
+	//	State:   playwright.WaitForSelectorStateVisible,
+	//	Timeout: playwright.Float(5000),
+	//})
 	if err != nil {
 		return nil, err
 	}
 
-	err = page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[2]/div[5]").WaitFor(playwright.LocatorWaitForOptions{
-		Timeout: playwright.Float(2000),
-	})
-	if err != nil {
-		// TODO:
-		notFoundLocator := page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/h2")
-		notFound, err2 := notFoundLocator.TextContent()
-		if err2 != nil {
-			return
-		}
-		CleanText(&notFound)
-		if strings.ToLower(notFound) == "not found" {
-			// aggiungi come scam token, anche se in realtà andrebbe filtrato a priori una volta ottenuti i dati da go plus
-			// nel service token
-			_ = page.Close()
-			return
-		} else {
-			return
-		}
-	}
-	page.WaitForTimeout(2000)
+	poolSelector, err := locatorWithRetryCombined(&page, "xpath=//html/body/div[1]/div[2]/div/div[2]/div[2]/div[1]/div[2]/div[2]/p", 3)
 
-	poolSelector := page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[2]/div[1]/div[2]/div[2]/p")
+
+	//err = page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[2]/div[1]/div[2]/div[2]/p").WaitFor(playwright.LocatorWaitForOptions{
+	//	State:   playwright.WaitForSelectorStateAttached,
+	//	Timeout: playwright.Float(5000),
+	//})
+	//
+	//err = page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[2]/div[1]/div[2]/div[2]/p").WaitFor(playwright.LocatorWaitForOptions{
+	//	State:   playwright.WaitForSelectorStateVisible,
+	//	Timeout: playwright.Float(5000),
+	//})
+
+	if err != nil {
+		return nil, err
+	}
+
+	//poolSelector := page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[2]/div[1]/div[2]/div[2]/p")
 
 	err = poolSelector.Click()
 	if err != nil {
 		return nil, err
 	}
 
+	err = doWait(&page, true, true, true)
+	if err != nil {
+		return nil, err
+	}
 	listPoolLocator, err := page.Locator("xpath=//html/body/div[5]/div[3]/ul/li").All()
 	if err != nil {
 		return nil, err
@@ -123,6 +134,14 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 			if err != nil {
 				return nil, err
 			}
+			err = page.WaitForLoadState(playwright.PageWaitForLoadStateOptions{
+				State:   playwright.LoadStateLoad,
+				Timeout: playwright.Float(10000),
+			})
+			if err != nil {
+				logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot wait for page")
+				return
+			}
 		}
 		poolName, err := li.TextContent()
 		if err != nil {
@@ -131,6 +150,12 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 
 		err = li.Click()
 		if err != nil {
+			return nil, err
+		}
+
+		err = doWait(&page, true, true, true)
+		if err != nil {
+			logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot wait for page")
 			return nil, err
 		}
 
@@ -144,11 +169,13 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 			}
 		}
 
-		page.WaitForTimeout(1000)
-
-		_ = page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[3]/div/div/div[1]/div[7]/span/button").WaitFor(playwright.LocatorWaitForOptions{
-			Timeout: playwright.Float(10000),
+		err = page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[3]/div/div/div[1]/div[7]/span/button").WaitFor(playwright.LocatorWaitForOptions{
+			Timeout: playwright.Float(2000),
 		})
+		if err != nil {
+			return nil, err
+		}
+
 		filterButton := page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[3]/div/div/div[1]/div[7]/span/button")
 		err = filterButton.Click()
 		if err != nil {
@@ -157,37 +184,36 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 			return nil, err
 		}
 
+		err = doWait(&page, false, false, true)
+		if err != nil {
+			logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot wait for page")
+			return nil, err
+		}
+
 		_ = page.Locator("xpath=//input[@placeholder='Address']").WaitFor(playwright.LocatorWaitForOptions{
-			Timeout: playwright.Float(10000),
+			Timeout: playwright.Float(4000),
 		})
 
-		page.WaitForTimeout(1000)
+		inputFiter := page.Locator("xpath=//input[@placeholder='Address']")
 
-		inputFiter := locatorWithRetry(&page, "xpath=//input[@placeholder='Address']", 3)
 		err = inputFiter.Fill(walletToken.WalletId)
 
 		if err != nil {
 			logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot fill filter locator")
-			_ = page.Close()
 			return nil, err
 		}
 
 		applyFilter := page.Locator("xpath=//form[@class='css-sevhfp']/div[2]/button[2]")
 		err = applyFilter.Click()
 		if err != nil {
-			applyFilter := page.Locator("xpath=//html/body/div[6]/div[3]/form/div[1]/div/input")
-			err = applyFilter.Click()
-			if err != nil {
-				applyFilter := page.Locator("xpath=//html/body/div[7]/div[3]/form/div[1]/div/input")
-				err = applyFilter.Click()
-				if err != nil {
-					logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot apply filter locator")
-					_ = page.Close()
-					return nil, err
-				}
-			}
+			logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot apply filter locator")
+			return nil, err
 		}
-
+		err = doWait(&page, true, true, true)
+		if err != nil {
+			logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot wait for page")
+			return nil, err
+		}
 		tableXpath := "xpath=//html/body/div[1]/div[2]/div/div[2]/div[1]/div[3]/div/div/div[2]/div[1]/div/div"
 
 		_ = page.Locator(tableXpath).WaitFor(playwright.LocatorWaitForOptions{
@@ -361,11 +387,80 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 func locatorWithRetry(page *playwright.Page, locatorPath string, retryCount int) playwright.Locator {
 	var locator playwright.Locator
 	for i := 0; i < retryCount; i++ {
-		if locator == nil {
-			locator = (*page).Locator(locatorPath)
+		err := (*page).Locator(locatorPath).WaitFor(playwright.LocatorWaitForOptions{
+			Timeout: playwright.Float(2000),
+		})
+		if err != nil {
+			(*page).WaitForTimeout(1000)
+			continue
 		} else {
+			locator = (*page).Locator(locatorPath)
 			break
 		}
 	}
 	return locator
+}
+
+func locatorWithRetryCombined(page *playwright.Page, locatorPath string, retryCount int) (playwright.Locator, error) {
+	var locator playwright.Locator
+	var err error
+	for i := 0; i < retryCount; i++ {
+		//err := (*page).Locator(locatorPath).WaitFor(playwright.LocatorWaitForOptions{
+		//	Timeout: playwright.Float(2000),
+		//})
+		err = doWaitLocator(page, locatorPath)
+		if err != nil {
+			(*page).WaitForTimeout(1000)
+			continue
+		} else {
+			locator = (*page).Locator(locatorPath)
+			break
+		}
+	}
+	return locator, err
+}
+
+func doWaitLocator(page *playwright.Page, locatorPath string) (err error) {
+	err = (*page).Locator(locatorPath).WaitFor(playwright.LocatorWaitForOptions{
+		State:   playwright.WaitForSelectorStateAttached,
+		Timeout: playwright.Float(2000),
+	})
+	err = (*page).Locator(locatorPath).WaitFor(playwright.LocatorWaitForOptions{
+		State:   playwright.WaitForSelectorStateVisible,
+		Timeout: playwright.Float(2000),
+	})
+
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func doWait(page *playwright.Page, load bool, dom bool, net bool) (err error) {
+	if dom {
+		err = (*page).WaitForLoadState(playwright.PageWaitForLoadStateOptions{
+			State:   playwright.LoadStateDomcontentloaded,
+			Timeout: playwright.Float(10000),
+		})
+
+	}
+	if net {
+		err = (*page).WaitForLoadState(playwright.PageWaitForLoadStateOptions{
+			State:   playwright.LoadStateNetworkidle,
+			Timeout: playwright.Float(10000),
+		})
+	}
+	if load {
+		err = (*page).WaitForLoadState(playwright.PageWaitForLoadStateOptions{
+			State:   playwright.LoadStateLoad,
+			Timeout: playwright.Float(10000),
+		})
+	}
+
+	if err != nil {
+		logrus.WithError(err).Errorf("cannot wait for page")
+		return err
+	}
+	return nil
 }
