@@ -1,6 +1,15 @@
 package main
 
 import (
+	graphql_api "auth/pkg/api/graphql"
+	perm_api "auth/pkg/api/perm"
+	product_api "auth/pkg/api/product"
+	resource_api "auth/pkg/api/resource"
+	resource_perm_api "auth/pkg/api/resource_perm"
+	user_api "auth/pkg/api/user"
+	user_product_api "auth/pkg/api/user_product"
+	user_resource_api "auth/pkg/api/user_resource"
+	user_resource_perm_api "auth/pkg/api/user_resource_perm"
 	"auth/pkg/cron/sync"
 	"auth/pkg/database/perm"
 	"auth/pkg/database/product"
@@ -35,15 +44,6 @@ import (
 	"strings"
 	"time"
 )
-
-// servizio di login diviso per prodotto
-
-// /login (dove si rilascia token per risorse di auth)
-// /login/productX -> eth-mirror (dove si rilascia token per risorse di productX)
-
-// la creazione di un prodotto "produce" aes256 e rsa256
-// salvare la chiave privata rsa256 a database encryptata
-// condividere la chiave aes256 e la chiave pubblica rsa256 in uscita
 
 type appConfig struct {
 	FiberPort                     int    `env:"FIBER_PORT" envDefault:"3000"`
