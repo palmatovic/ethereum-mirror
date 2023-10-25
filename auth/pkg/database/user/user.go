@@ -1,18 +1,18 @@
 package user
 
-import "time"
+import (
+	"auth/pkg/database/company"
+	"time"
+)
 
 type User struct {
-	UserId    int       `json:"-" gorm:"column:UserId;primaryKey;autoIncrement"`
-	Username  string    `json:"-" gorm:"column:Username;not null;uniqueKey:UsernameIdx"`
-	Email     string    `json:"-" gorm:"column:Email;not null;uniqueKey:EmailIdx"`
-	Name      string    `json:"-" gorm:"column:Name;not null"`
-	Surname   string    `json:"-" gorm:"column:Surname;not null"`
-	Dob       time.Time `json:"-" gorm:"column:Dob;type:date;not null"`
-	CreatedAt time.Time `json:"-" gorm:"column:CreatedAt;autoCreateTime"`
-	UpdatedAt time.Time `json:"-" gorm:"column:UpdatedAt;autoUpdateTime"`
-}
-
-func (User) TableName() string {
-	return "User"
+	UserId    int64 `json:"user_id" gorm:"column:UserId;primaryKey;autoIncrement"`
+	CompanyId int64 `json:"company_id" gorm:"column:CompanyId"`
+	company.Company
+	Username    string    `json:"username" gorm:"column:Username;uniqueIndex:UserUsernameIdx"`
+	Name        string    `json:"name" gorm:"column:Name"`
+	Surname     string    `json:"surname" gorm:"column:Surname"`
+	DateOfBirth string    `json:"date_of_birth" gorm:"column:DateOfBirth;type:date"`
+	CreatedAt   time.Time `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
+	UpdatedAt   time.Time `json:"updated_at" gorm:"column:UpdatedAt;autoUpdateTime"`
 }

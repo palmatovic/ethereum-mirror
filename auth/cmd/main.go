@@ -4,8 +4,8 @@ import (
 	graphql_api "auth/pkg/api/graphql"
 	perm_api "auth/pkg/api/perm"
 	product_api "auth/pkg/api/product"
+	resource_perm_api "auth/pkg/api/product_type_resource_perm"
 	resource_api "auth/pkg/api/resource"
-	resource_perm_api "auth/pkg/api/resource_perm"
 	user_api "auth/pkg/api/user"
 	user_product_api "auth/pkg/api/user_product"
 	user_resource_api "auth/pkg/api/user_resource"
@@ -13,8 +13,8 @@ import (
 	"auth/pkg/cron/sync"
 	"auth/pkg/database/perm"
 	"auth/pkg/database/product"
+	"auth/pkg/database/product_type_resource_perm"
 	"auth/pkg/database/resource"
-	"auth/pkg/database/resource_perm"
 	"auth/pkg/database/user"
 	"auth/pkg/database/user_product"
 	"auth/pkg/database/user_resource"
@@ -140,7 +140,7 @@ func migrateDatabase(db *gorm.DB, initScript string) {
 		&perm.Perm{},
 		&product.Product{},
 		&resource.Resource{},
-		&resource_perm.ResourcePerm{},
+		&product_type_resource_perm.ResourcePerm{},
 		&user.User{},
 		&user_product.UserProduct{},
 		&user_resource.UserResource{},

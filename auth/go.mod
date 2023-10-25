@@ -5,6 +5,7 @@ go 1.21
 require (
 	github.com/caarlos0/env/v6 v6.10.1
 	github.com/gofiber/fiber/v2 v2.49.2
+	github.com/golang-jwt/jwt/v4 v4.5.0
 	github.com/google/uuid v1.3.1
 	github.com/graphql-go/graphql v0.8.1
 	github.com/sirupsen/logrus v1.9.3
