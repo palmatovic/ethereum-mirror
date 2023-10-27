@@ -1,8 +1,8 @@
-package product
+package company
 
 import "auth/pkg/url"
 
-const Resource = url.BaseUrl + "/product"
+const Resource = url.BaseUrl + "/company"
 
 const (
 	GraphQL = Resource + "/graphql"
@@ -13,4 +13,4 @@ const (
 	Delete  = Resource + "/remove/:" + Id
 )
 
-const Id = "product_id"
+const Id = "company_id"
