@@ -2,7 +2,6 @@ package main
 
 import (
 	company_api "auth/pkg/api/company"
-	graphql_api "auth/pkg/api/graphql"
 	product_api "auth/pkg/api/product"
 	"auth/pkg/cron/sync"
 	"auth/pkg/database/company"
@@ -213,10 +212,10 @@ func registerAPIRoutes(app *fiber.App, db *gorm.DB, jwtValidator fiber.Handler) 
 	//permGraphQLApi := graphql_api.NewApi(perm_graphql_schema.Schema(db))
 
 	productApi := product_api.NewApi(db)
-	productGraphQLApi := graphql_api.NewApi(product_graphql_schema.Schema(db))
+	//productGraphQLApi := graphql_api.NewApi(product_graphql_schema.Schema(db))
 
 	companyApi := company_api.NewApi(db)
-	companyGraphQLApi := graphql_api.NewApi(company_graphql_schema.Schema(db))
+	//companyGraphQLApi := graphql_api.NewApi(company_graphql_schema.Schema(db))
 
 	//resourceApi := resource_api.NewApi(db)
 	//resourceGraphQLApi := graphql_api.NewApi(resource_graphql_schema.Schema(db))
@@ -247,14 +246,14 @@ func registerAPIRoutes(app *fiber.App, db *gorm.DB, jwtValidator fiber.Handler) 
 		//{"PUT", perm_url.Update, permApi.Update},
 		//{"DELETE", perm_url.Delete, permApi.Delete},
 
-		{"POST", product_url.GraphQL, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, productGraphQLApi.Post}},
+		//{"POST", product_url.GraphQL, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, productGraphQLApi.Post}},
 		{"GET", product_url.Get, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, productApi.Get}},
 		{"GET", product_url.List, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, productApi.List}},
 		{"POST", product_url.Create, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, productApi.Create}},
 		{"PUT", product_url.Update, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, productApi.Update}},
 		{"DELETE", product_url.Delete, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, productApi.Delete}},
 
-		{"POST", product_url.GraphQL, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, companyGraphQLApi.Post}},
+		//{"POST", product_url.GraphQL, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, companyGraphQLApi.Post}},
 		{"GET", product_url.Get, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, companyApi.Get}},
 		{"GET", product_url.List, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, companyApi.List}},
 		{"POST", product_url.Create, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, companyApi.Create}},
