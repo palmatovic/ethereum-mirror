@@ -6,7 +6,7 @@ import (
 	"auth/pkg/cron/sync"
 	"auth/pkg/database/company"
 	"auth/pkg/database/product"
-	"auth/pkg/service_util/crypto"
+	"auth/pkg/init"
 	token_util "auth/pkg/service_util/fiber/jwt/token"
 	jwt_util "auth/pkg/service_util/fiber/jwt/validator"
 	product_url "auth/pkg/url/product"
@@ -40,15 +40,15 @@ type appConfig struct {
 	InitScriptFilepath     string `env:"INIT_SCRIPT_FILEPATH,required"`
 }
 
-type secureConfig struct {
-	AES256InitScriptEncryptionKey string `env:"AES_256_INIT_SCRIPT_ENCRYPTION_KEY,required"`
-	AuthJwtPublicKeyFilepath      string `env:"AES_JWT_PUBLIC_KEY_FILEPATH,required"`
-	AuthJwtPrivateKeyFilepath     string `env:"AES_JWT_PRIVATE_KEY_FILEPATH,required"`
-
-	OpenSSLGenerateCnfScriptFilepath   string `env:"OPENSSL_GENERATE_CNF_SCRIPT_FILEPATH,required"`
-	OpenSSLGenerateCertsScriptFilepath string `env:"OPENSSL_GENERATE_CERTS_SCRIPT_FILEPATH,required"`
-	RSA256GenerateScriptFilepath       string `env:"RSA256_GENERATE_SCRIPT_FILEPATH,required"`
-}
+//type secureConfig struct {
+//	AES256InitScriptEncryptionKey string `env:"AES_256_INIT_SCRIPT_ENCRYPTION_KEY,required"`
+//	AuthJwtPublicKeyFilepath      string `env:"AES_JWT_PUBLIC_KEY_FILEPATH,required"`
+//	AuthJwtPrivateKeyFilepath     string `env:"AES_JWT_PRIVATE_KEY_FILEPATH,required"`
+//
+//	OpenSSLGenerateCnfScriptFilepath   string `env:"OPENSSL_GENERATE_CNF_SCRIPT_FILEPATH,required"`
+//	OpenSSLGenerateCertsScriptFilepath string `env:"OPENSSL_GENERATE_CERTS_SCRIPT_FILEPATH,required"`
+//	RSA256GenerateScriptFilepath       string `env:"RSA256_GENERATE_SCRIPT_FILEPATH,required"`
+//}
 
 func main() {
 	config := loadAppConfig()
@@ -57,11 +57,12 @@ func main() {
 
 	secure := loadSecureConfig()
 
-	jwtPublicKey := loadJWTPublicKey(secure.AuthJwtPublicKeyFilepath)
-
 	db := initializeDatabase()
 
-	initScript, err := crypto.NewKey(secure.AES256InitScriptEncryptionKey).DecryptFilepath(config.InitScriptFilepath)
+	init.NewService(db).Init()
+	// in init database devo creare i secret per il prodotto di auth
+	//jwtPublicKey := loadJWTPublicKey(secure.AuthJwtPublicKeyFilepath)
+	//initScript, err := crypto.NewKey(secure.AES256InitScriptEncryptionKey).DecryptFilepath(config.InitScriptFilepath)
 	handleError(err, "error during initialization sql script decryption")
 
 	migrateDatabase(db, *initScript)
