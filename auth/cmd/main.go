@@ -12,9 +12,6 @@ import (
 	product_url "auth/pkg/url/product"
 	"context"
 	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
-	"errors"
 	"fmt"
 	"github.com/caarlos0/env/v6"
 	"github.com/gofiber/fiber/v2"
@@ -40,32 +37,16 @@ type appConfig struct {
 	InitScriptFilepath     string `env:"INIT_SCRIPT_FILEPATH,required"`
 }
 
-//type secureConfig struct {
-//	AES256InitScriptEncryptionKey string `env:"AES_256_INIT_SCRIPT_ENCRYPTION_KEY,required"`
-//	AuthJwtPublicKeyFilepath      string `env:"AES_JWT_PUBLIC_KEY_FILEPATH,required"`
-//	AuthJwtPrivateKeyFilepath     string `env:"AES_JWT_PRIVATE_KEY_FILEPATH,required"`
-//
-//	OpenSSLGenerateCnfScriptFilepath   string `env:"OPENSSL_GENERATE_CNF_SCRIPT_FILEPATH,required"`
-//	OpenSSLGenerateCertsScriptFilepath string `env:"OPENSSL_GENERATE_CERTS_SCRIPT_FILEPATH,required"`
-//	RSA256GenerateScriptFilepath       string `env:"RSA256_GENERATE_SCRIPT_FILEPATH,required"`
-//}
-
 func main() {
 	config := loadAppConfig()
 
 	initializeLogger(config)
 
-	secure := loadSecureConfig()
-
 	db := initializeDatabase()
 
-	init.NewService(db).Init()
-	// in init database devo creare i secret per il prodotto di auth
-	//jwtPublicKey := loadJWTPublicKey(secure.AuthJwtPublicKeyFilepath)
-	//initScript, err := crypto.NewKey(secure.AES256InitScriptEncryptionKey).DecryptFilepath(config.InitScriptFilepath)
-	handleError(err, "error during initialization sql script decryption")
+	migrateDatabase(db)
 
-	migrateDatabase(db, *initScript)
+	jwtPublicKey := init.NewService(db).Init()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -85,40 +66,12 @@ func main() {
 	}
 }
 
-func loadJWTPublicKey(filepath string) *rsa.PublicKey {
-	secret, err := os.ReadFile(filepath)
-	handleError(err, "cannot read file")
-	pemBlock, _ := pem.Decode(secret)
-	if pemBlock == nil {
-		handleError(errors.New("cannot decode file"), "cannot decode file")
-	}
-	key, err := x509.ParsePKIXPublicKey(pemBlock.Bytes)
-	if err != nil {
-		handleError(errors.New("cannot decode file"), "cannot parse public key")
-	}
-	switch key := key.(type) {
-	case *rsa.PublicKey:
-		return key
-	default:
-		handleError(errors.New("cannot parse public key"), "not a RSA key")
-	}
-	return nil
-}
-
 func loadAppConfig() appConfig {
 	var config appConfig
 	if err := env.Parse(&config); err != nil {
 		handleError(err, "error during environment parsing")
 	}
 	config.LogFilePath = fmt.Sprintf("%s_%s.log", strings.Split(config.LogFilePath, ".log")[0], time.Now().UTC().Format(time.RFC3339))
-	return config
-}
-
-func loadSecureConfig() secureConfig {
-	var config secureConfig
-	if err := env.Parse(&config); err != nil {
-		handleError(err, "error during environment parsing")
-	}
 	return config
 }
 
@@ -157,14 +110,12 @@ func initializeDatabase() *gorm.DB {
 	return db
 }
 
-func migrateDatabase(db *gorm.DB, initScript string) {
+func migrateDatabase(db *gorm.DB) {
 	err := db.AutoMigrate(
 		&product.Product{},
 		&company.Company{},
 	)
 	handleError(err, "error during migration of database")
-	err = db.Exec(initScript).Error
-	handleError(err, "error during executing initialization script")
 }
 
 func runSyncJob(ctx context.Context, db *gorm.DB, interval int) error {

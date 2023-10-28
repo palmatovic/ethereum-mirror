@@ -5,6 +5,7 @@ import (
 	"crypto/rsa"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 )
 
 type Rsa struct{}
@@ -39,4 +40,24 @@ func (r *Rsa) GenerateRSAKeys() (*Pair, error) {
 		Private: pem.EncodeToMemory(privateKeyPEM),
 		Public:  pem.EncodeToMemory(&pem.Block{Type: "PUBLIC KEY", Bytes: publicKeyPEM}),
 	}, nil
+}
+
+type PublicKey []byte
+
+func (p PublicKey) ConvertToObj() (*rsa.PublicKey, error) {
+	block, _ := pem.Decode(p)
+	if block == nil {
+		return nil, errors.New("error during decoding public key")
+	}
+
+	pubKey, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	rsaPublicKey, ok := pubKey.(*rsa.PublicKey)
+	if !ok {
+		return nil, errors.New("rsa.PublicKey is not a *rsa.PublicKey")
+	}
+	return rsaPublicKey, nil
 }
