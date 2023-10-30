@@ -8,10 +8,14 @@ import (
 
 type ResourcePerm struct {
 	ResourcePermId int64 `json:"resource_perm_id" gorm:"column:ResourcePermId;primaryKey;autoIncrement"`
-	ResourceId     int64 `json:"resource_id" gorm:"column:ResourceId;uniqueIndex:ResourcePermIdx"`
+	ResourceId     int64 `json:"resource_id" gorm:"column:ResourceId:uniqueIndex:ResourceIdPermIdIdx"`
 	resource.Resource
-	PermId int64 `json:"perm_id" gorm:"column:PermId;uniqueIndex:ResourcePermIdx"`
+	PermId string `json:"perm_id" gorm:"column:PermId;uniqueIndex:ResourceIdPermIdIdx"`
 	perm.Perm
 	CreatedAt time.Time `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"column:UpdatedAt;autoUpdateTime"`
+}
+
+func (ResourcePerm) TableName() string {
+	return "ResourcePerm"
 }

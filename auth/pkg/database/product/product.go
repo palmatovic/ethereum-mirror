@@ -4,7 +4,7 @@ import "time"
 
 type Product struct {
 	ProductId                         int64     `json:"product_id" gorm:"column:ProductId;primaryKey;autoIncrement"`
-	Name                              string    `json:"name" gorm:"column:Name;uniqueIndex:ProductNameIdx"`
+	Name                              string    `json:"name" gorm:"column:Name;uniqueIndex:NameIdx"`
 	Description                       string    `json:"description" gorm:"column:Description"`
 	ServerCert                        []byte    `json:"server_cert" gorm:"column:ServerCert"`
 	ServerKey                         []byte    `json:"server_key" gorm:"column:ServerKey"`
@@ -22,4 +22,8 @@ type Product struct {
 	AES256Expired                     bool      `json:"aes_256_expired" gorm:"column:AES245Expired;default=0"`
 	CreatedAt                         time.Time `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
 	UpdatedAt                         time.Time `json:"updated_at" gorm:"column:UpdatedAt;autoUpdateTime"`
+}
+
+func (Product) TableName() string {
+	return "Product"
 }

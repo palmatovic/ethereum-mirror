@@ -7,10 +7,10 @@ import (
 )
 
 type UserProduct struct {
-	UserProductId int `json:"user_product_id" gorm:"UserProductId;autoIncrement;primaryKey"`
-	UserId        int `json:"user_id" gorm:"column:UserId;uniqueIndex:UserProductIdx"`
+	UserProductId int64 `json:"user_product_id" gorm:"column:UserProductId;autoIncrement;primaryKey"`
+	UserId        int64 `json:"user_id" gorm:"column:UserId;uniqueIndex:UserIdProductIdIdx"`
 	user.User
-	ProductId string `json:"product_id" gorm:"ProductId;uniqueIndex:UserProductIdx"`
+	ProductId int64 `json:"product_id" gorm:"column:ProductId;uniqueIndex:UserIdProductIdIdx"`
 	product.Product
 	Enabled              bool      `json:"enabled" gorm:"column:UserEnabled;default:0"`
 	Password             string    `json:"password" gorm:"column:Password;not null"`
@@ -21,4 +21,8 @@ type UserProduct struct {
 	MasterTwoFAKey       string    `json:"master_two_fa_key" gorm:"column:MasterTwoFAKey"` // MasterTwoFAKey used for reset lost 2FA
 	CreatedAt            time.Time `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
 	UpdatedAt            time.Time `json:"updated_at" gorm:"column:UpdatedAt;autoUpdateTime"`
+}
+
+func (UserProduct) TableName() string {
+	return "UserProduct"
 }

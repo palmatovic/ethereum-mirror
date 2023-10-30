@@ -57,11 +57,11 @@ func (a *Api) List() (status int, response interface{}) {
 		logrus.WithFields(a.fields).WithError(errors.New("page_number cannot be zero")).Error("terminated with failure")
 		return fiber.StatusBadRequest, json.NewErrorResponse(fiber.StatusBadRequest, "page_number cannot be zero")
 	}
-	httpStatus, companys, err := company_list_service.NewService(a.db, pageSize, pageNumber).List()
+	httpStatus, companies, err := company_list_service.NewService(a.db, pageSize, pageNumber).List()
 	if err != nil {
 		logrus.WithFields(a.fields).WithError(err).Errorf("terminated with failure")
 		return httpStatus, json.NewErrorResponse(httpStatus, err.Error())
 	}
 	logrus.WithFields(a.fields).Info("terminated with success")
-	return httpStatus, json.Response{Data: fiber.Map{"companys": companys}}
+	return httpStatus, json.Response{Data: fiber.Map{"companies": companies}}
 }

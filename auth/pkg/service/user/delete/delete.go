@@ -1,0 +1,31 @@
+package delete
+
+import (
+	user_db "auth/pkg/database/user"
+	"errors"
+	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
+)
+
+type Service struct {
+	db     *gorm.DB
+	userId int
+}
+
+func NewService(db *gorm.DB, userId int) *Service {
+	return &Service{
+		db:     db,
+		userId: userId,
+	}
+}
+
+func (s *Service) Delete() (status int, user *user_db.User, err error) {
+	user = new(user_db.User)
+	if err = s.db.Where("UserId = ?", s.userId).Delete(user).Error; err != nil {
+		if errors.Is(err, gorm.ErrForeignKeyViolated) || errors.Is(err, gorm.ErrRecordNotFound) {
+			return fiber.StatusBadRequest, nil, err
+		}
+		return fiber.StatusInternalServerError, nil, err
+	}
+	return fiber.StatusOK, user, nil
+}

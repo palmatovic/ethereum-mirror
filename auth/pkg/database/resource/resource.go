@@ -8,3 +8,7 @@ type Resource struct {
 	CreatedAt  time.Time `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
 	UpdatedAt  time.Time `json:"updated_at" gorm:"column:UpdatedAt;autoUpdateTime"`
 }
+
+func (Resource) TableName() string {
+	return "Resource"
+}

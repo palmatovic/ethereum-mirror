@@ -14,9 +14,20 @@ import (
 	user_product_db "auth/pkg/database/user_product"
 	"auth/pkg/model/api/product/create"
 	company_create_service "auth/pkg/service/company/create"
+	group_create_service "auth/pkg/service/group/create"
+	group_role_create_service "auth/pkg/service/group_role/create"
+	perm_create_service "auth/pkg/service/perm/create"
 	product_create_service "auth/pkg/service/product/create"
 	product_get_by_name_service "auth/pkg/service/product/get_by_name"
+	resource_create_service "auth/pkg/service/resource/create"
+	resource_perm_create_service "auth/pkg/service/resource_perm/create"
+	role_create_service "auth/pkg/service/role/create"
+	user_create_service "auth/pkg/service/user/create"
+	user_group_role_create_service "auth/pkg/service/user_group_role/create"
+	user_product_create_service "auth/pkg/service/user_product/create"
+	"auth/pkg/service_util/aes"
 	"errors"
+	"github.com/pquerna/otp/totp"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -41,6 +52,9 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 	err = db.AutoMigrate(
 		s.tables...,
 	)
+	if err != nil {
+		return nil, err
+	}
 
 	var product *product_db.Product
 	if _, product, err = product_get_by_name_service.NewService(db, "auth").Get(); err == nil {
@@ -88,51 +102,135 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 	}
 
 	var group *group_db.Group
-	if _, group, err = group_create_service.NewService(db, &group_db.Group{}).Create(); err != nil {
+	if _, group, err = group_create_service.NewService(db, &group_db.Group{
+		Name:      "admin-group",
+		ProductId: product.ProductId,
+		CompanyId: company.CompanyId,
+	}).Create(); err != nil {
 		return nil, err
 	}
 
 	var role *role_db.Role
-	if _, role, err = role_create_service.NewService(db, &role_db.Role{}).Create(); err != nil {
+	if _, role, err = role_create_service.NewService(db, &role_db.Role{
+		Name: "admin-role",
+	}).Create(); err != nil {
 		return nil, err
 	}
 
 	var groupRole *group_role_db.GroupRole
-	if _, groupRole, err = group_role_create_service.NewService(db, &group_role_db.GroupRole{}).Create(); err != nil {
+	if _, groupRole, err = group_role_create_service.NewService(db, &group_role_db.GroupRole{
+		GroupId: group.GroupId,
+		RoleId:  role.RoleId,
+	}).Create(); err != nil {
 		return nil, err
 	}
 
-	var resource *resource_db.Resource
-	if _, resource, err = resource_create_service.NewService(db, &resource_db.Resource{}).Create(); err != nil {
-		return nil, err
+	var resources = new([]resource_db.Resource)
+	for _, value := range []string{
+		"login",
+		"logout",
+		"otp",
+		"product",
+		"company",
+		"group",
+		"role",
+		"group_role",
+		"resource",
+		"perm",
+		"resource_perm",
+		"user_product",
+		"user_resource_perm",
+		"change_password",
+	} {
+		var resource *resource_db.Resource
+		if _, resource, err = resource_create_service.NewService(db, &resource_db.Resource{
+			Name: value,
+		}).Create(); err != nil {
+			return nil, err
+		}
+		*resources = append(*resources, *resource)
 	}
 
-	var perm *perm_db.Perm
-	if _, perm, err = perm_create_service.NewService(db, &perm_db.Perm{}).Create(); err != nil {
-		return nil, err
+	var perms = new([]perm_db.Perm)
+	for _, value := range []string{
+		"create",
+		"update",
+		"get",
+		"list",
+		"delete",
+	} {
+		var perm *perm_db.Perm
+		if _, perm, err = perm_create_service.NewService(db, &perm_db.Perm{
+			PermId: value,
+		}).Create(); err != nil {
+			return nil, err
+		}
+		*perms = append(*perms, *perm)
 	}
 
-	var resourcePerm *resource_perm_db.ResourcePerm
-	if _, resourcePerm, err = resource_perm_create_service.NewService(db, &resource_perm_db.ResourcePerm{}).Create(); err != nil {
-		return nil, err
+	var resourcePerms *[]resource_perm_db.ResourcePerm
+	for _, res := range *resources {
+		for _, per := range *perms {
+			var resourcePerm *resource_perm_db.ResourcePerm
+			if _, resourcePerm, err = resource_perm_create_service.NewService(db, &resource_perm_db.ResourcePerm{
+				ResourceId: res.ResourceId,
+				PermId:     per.PermId,
+			}).Create(); err != nil {
+				return nil, err
+			}
+			*resourcePerms = append(*resourcePerms, *resourcePerm)
+		}
 	}
 
 	var user *user_db.User
-	if _, user, err = user_create_service.NewService(db, &user_db.User{}).Create(); err != nil {
+	if _, user, err = user_create_service.NewService(db, &user_db.User{
+		CompanyId:   company.CompanyId,
+		Username:    "auth",
+		Name:        "auth",
+		Surname:     "auth",
+		DateOfBirth: time.Now(),
+	}).Create(); err != nil {
 		return nil, err
 	}
 
-	var userGroupRole *user_group_role_db.UserGroupRole
-	if _, userGroupRole, err = user_group_role_create_service.NewService(db, &user_group_role_db.UserGroupRole{}).Create(); err != nil {
+	if _, _, err = user_group_role_create_service.NewService(db, &user_group_role_db.UserGroupRole{
+		UserId:      user.UserId,
+		GroupRoleId: groupRole.GroupRoleId,
+	}).Create(); err != nil {
 		return nil, err
 	}
 
-	var userProduct *user_product_db.UserProduct
-	if _, userProduct, err = user_product_create_service.NewService(db, &user_product_db.UserProduct{}).Create(); err != nil {
+	// generate two fa key
+	masterPwdKey, err := aes.NewService().NewAES256Key()
+	if err != nil {
+		return nil, err
+	}
+	masterTwoFAKey, err := aes.NewService().NewAES256Key()
+	if err != nil {
 		return nil, err
 	}
 
-	// creare gruppi, ruoli, risorse ecc
+	key, err := totp.Generate(totp.GenerateOpts{
+		Issuer:      "auth",
+		AccountName: "auth",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	if _, _, err = user_product_create_service.NewService(db, &user_product_db.UserProduct{
+		UserId:               user.UserId,
+		ProductId:            product.ProductId,
+		Enabled:              true,
+		Password:             "admin-password",
+		PasswordExpirationAt: time.Now().Add(time.Hour * 24 * 365),
+		PasswordExpired:      false,
+		MasterPasswordKey:    string(*masterPwdKey),
+		TwoFAKey:             key.String(),
+		MasterTwoFAKey:       string(*masterTwoFAKey),
+	}).Create(); err != nil {
+		return nil, err
+	}
 
 	return db, nil
 }

@@ -9,10 +9,14 @@ import (
 type Group struct {
 	GroupId   int64  `json:"group_id" gorm:"column:GroupId;primaryKey;autoIncrement"`
 	Name      string `json:"name" gorm:"column:Name"`
-	ProductId int64  `json:"product_id" gorm:"column:ProductId;uniqueIndex:ProductCompanyIdx"`
+	ProductId int64  `json:"product_id" gorm:"column:ProductId;uniqueIndex:ProductIdCompanyIdIdx"`
 	product.Product
 	CompanyId int64 `json:"company_id" gorm:"column:CompanyId;uniqueIndex:ProductCompanyIdx"`
 	company.Company
 	CreatedAt time.Time `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
 	UpdatedAt time.Time `json:"updated_at" gorm:"column:UpdatedAt;autoUpdateTime"`
+}
+
+func (Group) TableName() string {
+	return "Group"
 }
