@@ -104,6 +104,7 @@ func main() {
 	userProductApi := user_product.NewApi(db)
 	eg.Go(func() error {
 		return init_fiber.NewService(ctx, config.FiberPort, []init_fiber.Api{
+
 			init_fiber.NewApi("GET", product_url.Get, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, productApi.Get}),
 			init_fiber.NewApi("GET", product_url.List, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, productApi.List}),
 			init_fiber.NewApi("POST", product_url.Create, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, productApi.Create}),

@@ -28,12 +28,16 @@ import (
 	user_group_role_create_service "auth/pkg/service/user_group_role/create"
 	user_product_create_service "auth/pkg/service/user_product/create"
 	"auth/pkg/service_util/aes"
+	"crypto/sha256"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
+	"os"
 	"time"
 )
 
@@ -204,7 +208,7 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 		Username:    "auth",
 		Name:        "auth",
 		Surname:     "auth",
-		DateOfBirth: time.Now(),
+		DateOfBirth: time.Date(time.Now().Year(), time.Now().Month(), time.Now().Day(), 0, 0, 0, 0, time.Now().Location()),
 	}).Create(); err != nil {
 		return nil, err
 	}
@@ -221,10 +225,12 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("%x\n", *masterPwdKey)
 	masterTwoFAKey, err := aes.NewService().NewAES256Key()
 	if err != nil {
 		return nil, err
 	}
+	fmt.Printf("%x\n", *masterTwoFAKey)
 
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      "auth",
@@ -235,9 +241,23 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 		return nil, err
 	}
 
-	if _, _, err = user_product_create_service.NewService(tx, &user_product_db.UserProduct{
+	file, err := os.Create("admin_product-auth.json")
+	if err != nil {
+		return nil, err
+	}
+	defer func(f *os.File) {
+		_ = f.Close()
+	}(file)
+
+	// Crea un encoder JSON
+	encoder := json.NewEncoder(file)
+
+	userProduct := &user_product_db.UserProduct{
+		UserProductId:        0,
 		UserId:               user.UserId,
+		User:                 user_db.User{},
 		ProductId:            product.ProductId,
+		Product:              product_db.Product{},
 		Enabled:              true,
 		Password:             "admin-password",
 		PasswordExpirationAt: time.Now().Add(time.Hour * 24 * 365),
@@ -245,7 +265,20 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 		MasterPasswordKey:    *masterPwdKey,
 		TwoFAKey:             key.Secret(),
 		MasterTwoFAKey:       *masterTwoFAKey,
-	}).Create(); err != nil {
+	}
+
+	if err = encoder.Encode(userProduct); err != nil {
+		return nil, err
+	}
+	sha256MasterPwdKey := sha256.Sum256(userProduct.MasterPasswordKey)
+	userProduct.MasterPasswordKey = sha256MasterPwdKey[:]
+	fmt.Printf("%x\n", userProduct.MasterPasswordKey)
+
+	sha256MasterTwoFAKey := sha256.Sum256(userProduct.MasterTwoFAKey)
+	userProduct.MasterTwoFAKey = sha256MasterTwoFAKey[:]
+	fmt.Printf("%x\n", userProduct.MasterTwoFAKey)
+
+	if _, _, err = user_product_create_service.NewService(tx, userProduct).Create(); err != nil {
 		return nil, err
 	}
 
