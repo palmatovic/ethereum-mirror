@@ -10,20 +10,20 @@ import (
 )
 
 type Service struct {
-	db          *gorm.DB
-	productName string
+	db   *gorm.DB
+	Name string
 }
 
-func NewService(db *gorm.DB, productName string) *Service {
+func NewService(db *gorm.DB, Name string) *Service {
 	return &Service{
-		db:          db,
-		productName: productName,
+		db:   db,
+		Name: Name,
 	}
 }
 
 func (s *Service) Get() (status int, publicKey *rsa.PublicKey, err error) {
 	product := new(product_db.Product)
-	if err = s.db.Where("Name = ?", s.productName).First(product).Error; err != nil {
+	if err = s.db.Where("Name = ?", s.Name).First(product).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return fiber.StatusNotFound, nil, err
 		} else {

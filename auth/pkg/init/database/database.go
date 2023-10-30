@@ -4,6 +4,7 @@ import (
 	company_db "auth/pkg/database/company"
 	group_db "auth/pkg/database/group"
 	group_role_db "auth/pkg/database/group_role"
+	"auth/pkg/database/group_role_resource_perm"
 	perm_db "auth/pkg/database/perm"
 	product_db "auth/pkg/database/product"
 	resource_db "auth/pkg/database/resource"
@@ -16,6 +17,7 @@ import (
 	company_create_service "auth/pkg/service/company/create"
 	group_create_service "auth/pkg/service/group/create"
 	group_role_create_service "auth/pkg/service/group_role/create"
+	group_role_resource_perm_create_service "auth/pkg/service/group_role_resource_perm/create"
 	perm_create_service "auth/pkg/service/perm/create"
 	product_create_service "auth/pkg/service/product/create"
 	product_get_by_name_service "auth/pkg/service/product/get_by_name"
@@ -48,33 +50,33 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 	db, err = gorm.Open(sqlite.Open(s.dbFilepath), &gorm.Config{
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
+	tx := db.Begin()
+	defer func() {
+		if err != nil {
+			tx.Rollback()
+		} else {
+			tx.Commit()
+		}
+	}()
 
-	err = db.AutoMigrate(
+	err = tx.AutoMigrate(
 		s.tables...,
 	)
+
 	if err != nil {
 		return nil, err
 	}
 
 	var product *product_db.Product
-	if _, product, err = product_get_by_name_service.NewService(db, "auth").Get(); err == nil {
-		return db, nil
+	if _, product, err = product_get_by_name_service.NewService(tx, "auth").Get(); err == nil {
+		return tx, nil
 	}
 
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
 		return nil, err
 	}
 
-	tx := db.Begin()
-
-	defer func() {
-		if err != nil {
-			tx.Rollback()
-		}
-		tx.Commit()
-	}()
-
-	if _, product, err = product_create_service.NewService(db, &create.Product{
+	if _, product, err = product_create_service.NewService(tx, &create.Product{
 		Name:        "auth",
 		Description: "auth product",
 		SslSetup: create.SslSetup{
@@ -95,14 +97,14 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 	}
 
 	var company *company_db.Company
-	if _, company, err = company_create_service.NewService(db, &company_db.Company{
+	if _, company, err = company_create_service.NewService(tx, &company_db.Company{
 		Name: "auth-company",
 	}).Create(); err != nil {
 		return nil, err
 	}
 
 	var group *group_db.Group
-	if _, group, err = group_create_service.NewService(db, &group_db.Group{
+	if _, group, err = group_create_service.NewService(tx, &group_db.Group{
 		Name:      "admin-group",
 		ProductId: product.ProductId,
 		CompanyId: company.CompanyId,
@@ -111,14 +113,14 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 	}
 
 	var role *role_db.Role
-	if _, role, err = role_create_service.NewService(db, &role_db.Role{
+	if _, role, err = role_create_service.NewService(tx, &role_db.Role{
 		Name: "admin-role",
 	}).Create(); err != nil {
 		return nil, err
 	}
 
 	var groupRole *group_role_db.GroupRole
-	if _, groupRole, err = group_role_create_service.NewService(db, &group_role_db.GroupRole{
+	if _, groupRole, err = group_role_create_service.NewService(tx, &group_role_db.GroupRole{
 		GroupId: group.GroupId,
 		RoleId:  role.RoleId,
 	}).Create(); err != nil {
@@ -138,12 +140,13 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 		"resource",
 		"perm",
 		"resource_perm",
+		"group_role_resource_perm",
 		"user_product",
 		"user_resource_perm",
 		"change_password",
 	} {
 		var resource *resource_db.Resource
-		if _, resource, err = resource_create_service.NewService(db, &resource_db.Resource{
+		if _, resource, err = resource_create_service.NewService(tx, &resource_db.Resource{
 			Name: value,
 		}).Create(); err != nil {
 			return nil, err
@@ -160,7 +163,7 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 		"delete",
 	} {
 		var perm *perm_db.Perm
-		if _, perm, err = perm_create_service.NewService(db, &perm_db.Perm{
+		if _, perm, err = perm_create_service.NewService(tx, &perm_db.Perm{
 			PermId: value,
 		}).Create(); err != nil {
 			return nil, err
@@ -168,11 +171,11 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 		*perms = append(*perms, *perm)
 	}
 
-	var resourcePerms *[]resource_perm_db.ResourcePerm
+	var resourcePerms = new([]resource_perm_db.ResourcePerm)
 	for _, res := range *resources {
 		for _, per := range *perms {
 			var resourcePerm *resource_perm_db.ResourcePerm
-			if _, resourcePerm, err = resource_perm_create_service.NewService(db, &resource_perm_db.ResourcePerm{
+			if _, resourcePerm, err = resource_perm_create_service.NewService(tx, &resource_perm_db.ResourcePerm{
 				ResourceId: res.ResourceId,
 				PermId:     per.PermId,
 			}).Create(); err != nil {
@@ -182,8 +185,20 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 		}
 	}
 
+	var groupRoleResourcePerms *[]group_role_resource_perm.GroupRoleResourcePerm
+	for _, value := range *resourcePerms {
+		var groupRoleResourcePerm *group_role_resource_perm.GroupRoleResourcePerm
+		if _, groupRoleResourcePerm, err = group_role_resource_perm_create_service.NewService(tx, &group_role_resource_perm.GroupRoleResourcePerm{
+			GroupRoleId:    groupRole.GroupRoleId,
+			ResourcePermId: value.ResourcePermId,
+		}).Create(); err != nil {
+			return nil, err
+		}
+		*groupRoleResourcePerms = append(*groupRoleResourcePerms, *groupRoleResourcePerm)
+	}
+
 	var user *user_db.User
-	if _, user, err = user_create_service.NewService(db, &user_db.User{
+	if _, user, err = user_create_service.NewService(tx, &user_db.User{
 		CompanyId:   company.CompanyId,
 		Username:    "auth",
 		Name:        "auth",
@@ -193,7 +208,7 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 		return nil, err
 	}
 
-	if _, _, err = user_group_role_create_service.NewService(db, &user_group_role_db.UserGroupRole{
+	if _, _, err = user_group_role_create_service.NewService(tx, &user_group_role_db.UserGroupRole{
 		UserId:      user.UserId,
 		GroupRoleId: groupRole.GroupRoleId,
 	}).Create(); err != nil {
@@ -218,7 +233,7 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 		return nil, err
 	}
 
-	if _, _, err = user_product_create_service.NewService(db, &user_product_db.UserProduct{
+	if _, _, err = user_product_create_service.NewService(tx, &user_product_db.UserProduct{
 		UserId:               user.UserId,
 		ProductId:            product.ProductId,
 		Enabled:              true,

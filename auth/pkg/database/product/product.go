@@ -4,7 +4,7 @@ import "time"
 
 type Product struct {
 	ProductId                         int64     `json:"product_id" gorm:"column:ProductId;primaryKey;autoIncrement"`
-	Name                              string    `json:"name" gorm:"column:Name;uniqueIndex:NameIdx"`
+	Name                              string    `json:"name" gorm:"column:Name;uniqueIndex:ProductNameIdx"`
 	Description                       string    `json:"description" gorm:"column:Description"`
 	ServerCert                        []byte    `json:"server_cert" gorm:"column:ServerCert"`
 	ServerKey                         []byte    `json:"server_key" gorm:"column:ServerKey"`
