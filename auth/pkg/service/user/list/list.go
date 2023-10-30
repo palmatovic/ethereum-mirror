@@ -8,11 +8,11 @@ import (
 
 type Service struct {
 	db     *gorm.DB
-	limit  int
-	offset int
+	limit  int64
+	offset int64
 }
 
-func NewService(db *gorm.DB, pageSize int, pageNumber int) *Service {
+func NewService(db *gorm.DB, pageSize int64, pageNumber int64) *Service {
 	return &Service{
 		db:     db,
 		limit:  pageSize,
@@ -22,7 +22,7 @@ func NewService(db *gorm.DB, pageSize int, pageNumber int) *Service {
 
 func (s *Service) List() (status int, users *[]user_db.User, err error) {
 	users = new([]user_db.User)
-	if err = s.db.Order("UserId ASC").Offset(s.offset).Limit(s.limit).Find(users).Error; err != nil {
+	if err = s.db.Order("UserId ASC").Offset(int(s.offset)).Limit(int(s.limit)).Find(users).Error; err != nil {
 		return fiber.StatusInternalServerError, nil, err
 	}
 	return fiber.StatusOK, users, nil

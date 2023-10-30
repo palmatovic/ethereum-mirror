@@ -32,24 +32,24 @@ func NewApi(
 
 func (a *Api) List() (status int, response interface{}) {
 	logrus.WithFields(a.fields).Info("started")
-	var pageSize int
+	var pageSize int64
 	var err error
 	if len(a.pageSize) == 0 {
 		logrus.WithFields(a.fields).WithError(errors.New("empty page_size")).Error("terminated with failure")
 		return fiber.StatusBadRequest, json.NewErrorResponse(fiber.StatusBadRequest, "empty page_size")
 	}
 
-	if pageSize, err = strconv.Atoi(a.pageSize); err != nil {
+	if pageSize, err = strconv.ParseInt(a.pageSize, 10, 64); err != nil {
 		logrus.WithFields(a.fields).WithError(err).Error("terminated with failure")
 		return fiber.StatusBadRequest, json.NewErrorResponse(fiber.StatusBadRequest, "invalid page_size")
 	}
-	var pageNumber int
+	var pageNumber int64
 	if len(a.pageNumber) == 0 {
 		logrus.WithFields(a.fields).WithError(errors.New("empty page_number")).Error("terminated with failure")
 		return fiber.StatusBadRequest, json.NewErrorResponse(fiber.StatusBadRequest, "empty page_number")
 	}
 
-	if pageNumber, err = strconv.Atoi(a.pageNumber); err != nil {
+	if pageNumber, err = strconv.ParseInt(a.pageNumber, 10, 64); err != nil {
 		logrus.WithFields(a.fields).WithError(err).Error("terminated with failure")
 		return fiber.StatusBadRequest, json.NewErrorResponse(fiber.StatusBadRequest, "invalid page_number")
 	}

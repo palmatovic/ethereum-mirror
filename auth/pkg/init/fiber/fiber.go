@@ -11,7 +11,7 @@ import (
 
 type Service struct {
 	ctx     context.Context
-	port    int
+	port    int64
 	apiList []Api
 }
 
@@ -34,7 +34,7 @@ func NewApi(
 
 func NewService(
 	ctx context.Context,
-	port int,
+	port int64,
 	apiList []Api,
 
 ) *Service {

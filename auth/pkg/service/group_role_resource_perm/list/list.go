@@ -8,11 +8,11 @@ import (
 
 type Service struct {
 	db     *gorm.DB
-	limit  int
-	offset int
+	limit  int64
+	offset int64
 }
 
-func NewService(db *gorm.DB, pageSize int, pageNumber int) *Service {
+func NewService(db *gorm.DB, pageSize int64, pageNumber int64) *Service {
 	return &Service{
 		db:     db,
 		limit:  pageSize,
@@ -22,7 +22,7 @@ func NewService(db *gorm.DB, pageSize int, pageNumber int) *Service {
 
 func (s *Service) List() (status int, groups *[]group_role_resource_perm_db.GroupRoleResourcePerm, err error) {
 	groups = new([]group_role_resource_perm_db.GroupRoleResourcePerm)
-	if err = s.db.Order("GroupRoleResourcePermId ASC").Offset(s.offset).Limit(s.limit).Find(groups).Error; err != nil {
+	if err = s.db.Order("GroupRoleResourcePermId ASC").Offset(int(s.offset)).Limit(int(s.limit)).Find(groups).Error; err != nil {
 		return fiber.StatusInternalServerError, nil, err
 	}
 	return fiber.StatusOK, groups, nil

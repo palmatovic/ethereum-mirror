@@ -8,8 +8,8 @@ import (
 )
 
 type AppConfig struct {
-	FiberPort              int    `env:"FIBER_PORT" envDefault:"3000"`
-	SyncJobIntervalMinutes int    `env:"SYNC_JOB_INTERVAL_MINUTES" envDefault:"1"`
+	FiberPort              int64  `env:"FIBER_PORT" envDefault:"3000"`
+	SyncJobIntervalMinutes int64  `env:"SYNC_JOB_INTERVAL_MINUTES" envDefault:"1"`
 	LogLevel               string `env:"LOG_LEVEL" envDefault:"debug"`
 	LogFilePath            string `env:"LOG_FILE_PATH" envDefault:"./auth.log"`
 	ConsoleLogEnabled      bool   `env:"CONSOLE_LOG_ENABLED" envDefault:"true"`

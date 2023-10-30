@@ -9,10 +9,10 @@ import (
 
 type Service struct {
 	db     *gorm.DB
-	roleId int
+	roleId int64
 }
 
-func NewService(db *gorm.DB, roleId int) *Service {
+func NewService(db *gorm.DB, roleId int64) *Service {
 	return &Service{
 		db:     db,
 		roleId: roleId,

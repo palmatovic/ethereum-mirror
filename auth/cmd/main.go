@@ -2,6 +2,9 @@ package main
 
 import (
 	"auth/pkg/api/company"
+	"auth/pkg/api/group"
+	"auth/pkg/api/group_role"
+	"auth/pkg/api/group_role_resource_perm"
 	"auth/pkg/api/product"
 	"auth/pkg/cron/sync"
 	company_db "auth/pkg/database/company"
@@ -24,6 +27,9 @@ import (
 	token_util "auth/pkg/service_util/fiber/jwt/token"
 	"auth/pkg/service_util/fiber/jwt/validator"
 	company_url "auth/pkg/url/company"
+	group_url "auth/pkg/url/group"
+	group_role_url "auth/pkg/url/group_role"
+	group_role_resource_perm_url "auth/pkg/url/group_role_resource_perm"
 	product_url "auth/pkg/url/product"
 	"context"
 	"github.com/gofiber/fiber/v2"
@@ -42,14 +48,14 @@ func main() {
 
 	db, err := init_database.NewService("./auth.db",
 		&company_db.Company{},
-		&product_db.Product{},
-		&role_db.Role{},
 		&group_db.Group{},
 		&group_role_db.GroupRole{},
 		&group_role_resource_perm_db.GroupRoleResourcePerm{},
 		&perm_db.Perm{},
+		&product_db.Product{},
 		&resource_db.Resource{},
 		&resource_perm_db.ResourcePerm{},
+		&role_db.Role{},
 		&user_db.User{},
 		&user_group_role_db.UserGroupRole{},
 		&user_product_db.UserProduct{},
@@ -72,6 +78,9 @@ func main() {
 
 	productApi := product.NewApi(db)
 	companyApi := company.NewApi(db)
+	groupApi := group.NewApi(db)
+	groupRoleApi := group_role.NewApi(db)
+	groupRoleResourcePermApi := group_role_resource_perm.NewApi(db)
 
 	eg.Go(func() error {
 		return init_fiber.NewService(ctx, config.FiberPort, []init_fiber.Api{
@@ -86,6 +95,24 @@ func main() {
 			init_fiber.NewApi("POST", company_url.Create, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, companyApi.Create}),
 			init_fiber.NewApi("PUT", company_url.Update, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, companyApi.Update}),
 			init_fiber.NewApi("DELETE", company_url.Delete, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, companyApi.Delete}),
+
+			init_fiber.NewApi("GET", group_url.Get, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, groupApi.Get}),
+			init_fiber.NewApi("GET", group_url.List, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, groupApi.List}),
+			init_fiber.NewApi("POST", group_url.Create, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, groupApi.Create}),
+			init_fiber.NewApi("PUT", group_url.Update, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, groupApi.Update}),
+			init_fiber.NewApi("DELETE", group_url.Delete, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, groupApi.Delete}),
+
+			init_fiber.NewApi("GET", group_role_url.Get, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, groupRoleApi.Get}),
+			init_fiber.NewApi("GET", group_role_url.List, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, groupRoleApi.List}),
+			init_fiber.NewApi("POST", group_role_url.Create, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, groupRoleApi.Create}),
+			init_fiber.NewApi("PUT", group_role_url.Update, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, groupRoleApi.Update}),
+			init_fiber.NewApi("DELETE", group_role_url.Delete, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, groupRoleApi.Delete}),
+
+			init_fiber.NewApi("GET", group_role_resource_perm_url.Get, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, groupRoleResourcePermApi.Get}),
+			init_fiber.NewApi("GET", group_role_resource_perm_url.List, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, groupRoleResourcePermApi.List}),
+			init_fiber.NewApi("POST", group_role_resource_perm_url.Create, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, groupRoleResourcePermApi.Create}),
+			init_fiber.NewApi("PUT", group_role_resource_perm_url.Update, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, groupRoleResourcePermApi.Update}),
+			init_fiber.NewApi("DELETE", group_role_resource_perm_url.Delete, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, groupRoleResourcePermApi.Delete}),
 		}).Init()
 	})
 
@@ -94,7 +121,7 @@ func main() {
 	}
 }
 
-func runSyncJob(ctx context.Context, db *gorm.DB, interval int) error {
+func runSyncJob(ctx context.Context, db *gorm.DB, interval int64) error {
 	c := sync.NewSync(db)
 	ticker := time.NewTicker(time.Duration(interval) * time.Minute)
 	defer ticker.Stop()
