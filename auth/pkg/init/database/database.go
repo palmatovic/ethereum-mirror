@@ -29,6 +29,7 @@ import (
 	user_product_create_service "auth/pkg/service/user_product/create"
 	"auth/pkg/service_util/aes"
 	"errors"
+	"github.com/pquerna/otp"
 	"github.com/pquerna/otp/totp"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
@@ -69,7 +70,7 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 
 	var product *product_db.Product
 	if _, product, err = product_get_by_name_service.NewService(tx, "auth").Get(); err == nil {
-		return tx, nil
+		return db, nil
 	}
 
 	if !errors.Is(err, gorm.ErrRecordNotFound) {
@@ -89,8 +90,8 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 			AltDNS:      "*.auth-company.com",
 		},
 		JwtConfig: create.JwtConfig{
-			AccessToken:  create.Token{ExpiresInMinutes: int64(time.Minute * 4 * 60)},
-			RefreshToken: create.Token{ExpiresInMinutes: int64(time.Minute * 8 * 60)},
+			AccessToken:  create.Token{ExpiresInMinutes: int64(4 * 60)},
+			RefreshToken: create.Token{ExpiresInMinutes: int64(8 * 60)},
 		},
 	}).Create(); err != nil {
 		return nil, err
@@ -185,7 +186,7 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 		}
 	}
 
-	var groupRoleResourcePerms *[]group_role_resource_perm.GroupRoleResourcePerm
+	var groupRoleResourcePerms = new([]group_role_resource_perm.GroupRoleResourcePerm)
 	for _, value := range *resourcePerms {
 		var groupRoleResourcePerm *group_role_resource_perm.GroupRoleResourcePerm
 		if _, groupRoleResourcePerm, err = group_role_resource_perm_create_service.NewService(tx, &group_role_resource_perm.GroupRoleResourcePerm{
@@ -228,6 +229,7 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 	key, err := totp.Generate(totp.GenerateOpts{
 		Issuer:      "auth",
 		AccountName: "auth",
+		Algorithm:   otp.AlgorithmSHA256,
 	})
 	if err != nil {
 		return nil, err
@@ -240,9 +242,9 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 		Password:             "admin-password",
 		PasswordExpirationAt: time.Now().Add(time.Hour * 24 * 365),
 		PasswordExpired:      false,
-		MasterPasswordKey:    string(*masterPwdKey),
-		TwoFAKey:             key.String(),
-		MasterTwoFAKey:       string(*masterTwoFAKey),
+		MasterPasswordKey:    *masterPwdKey,
+		TwoFAKey:             key.Secret(),
+		MasterTwoFAKey:       *masterTwoFAKey,
 	}).Create(); err != nil {
 		return nil, err
 	}

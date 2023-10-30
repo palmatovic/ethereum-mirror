@@ -16,9 +16,9 @@ type UserProduct struct {
 	Password             string          `json:"password" gorm:"column:Password;not null"`
 	PasswordExpirationAt time.Time       `json:"password_expiration_at" gorm:"column:PasswordExpirationAt"`
 	PasswordExpired      bool            `json:"password_expired" gorm:"column:PasswordExpired;default:0"`
-	MasterPasswordKey    string          `json:"master_password_key" gorm:"column:MasterKey"` // MasterPasswordKey used for reset lost/forgotten password
+	MasterPasswordKey    []byte          `json:"master_password_key" gorm:"column:MasterKey"` // MasterPasswordKey used for reset lost/forgotten password
 	TwoFAKey             string          `json:"two_fa_key" gorm:"column:2FAKey"`
-	MasterTwoFAKey       string          `json:"master_two_fa_key" gorm:"column:MasterTwoFAKey"` // MasterTwoFAKey used for reset lost 2FA
+	MasterTwoFAKey       []byte          `json:"master_two_fa_key" gorm:"column:MasterTwoFAKey"` // MasterTwoFAKey used for reset lost 2FA
 	CreatedAt            time.Time       `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
 	UpdatedAt            time.Time       `json:"updated_at" gorm:"column:UpdatedAt;autoUpdateTime"`
 }

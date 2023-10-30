@@ -9,3 +9,5 @@
 /.idea/
 /wallet_synchronizer_node/
 /auth/.idea/
+/auth/auth.db
+/auth/*.log
