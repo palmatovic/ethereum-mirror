@@ -31,8 +31,8 @@ func (a *Api) Get() (status int, response interface{}) {
 		logrus.WithFields(a.fields).WithError(errors.New("empty product_id")).Error("terminated with failure")
 		return fiber.StatusBadRequest, json.NewErrorResponse(fiber.StatusBadRequest, "empty product_id")
 	}
-	var productId int
-	if productId, err = strconv.Atoi(a.productId); err != nil {
+	var productId int64
+	if productId, err = strconv.ParseInt(a.productId, 10, 64); err != nil {
 		logrus.WithFields(a.fields).WithError(err).Error("terminated with failure")
 		return fiber.StatusBadRequest, json.NewErrorResponse(fiber.StatusBadRequest, "invalid product_id")
 	}
