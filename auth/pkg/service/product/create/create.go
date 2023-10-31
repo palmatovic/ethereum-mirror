@@ -3,7 +3,6 @@ package create
 import (
 	product_db "auth/pkg/database/product"
 	model_create_product "auth/pkg/model/api/product/create"
-	"auth/pkg/service_util/aes"
 	"auth/pkg/service_util/rsa"
 	"auth/pkg/service_util/ssl"
 	"errors"
@@ -42,28 +41,20 @@ func (s *Service) Create() (status int, newProduct *product_db.Product, err erro
 		return fiber.StatusInternalServerError, nil, err
 	}
 
-	key, err := aes.NewService().NewAES256Key()
-	if err != nil {
-		return fiber.StatusInternalServerError, nil, err
-	}
-
 	newProduct = &product_db.Product{
-		Name:                              s.product.Name,
-		Description:                       s.product.Description,
-		ServerCert:                        certificates.Server.Cert,
-		ServerKey:                         certificates.Server.Key,
-		CaCert:                            certificates.CA.Cert,
-		CaKey:                             certificates.CA.Key,
-		SSLExpired:                        false,
-		RSAPrivateKey:                     keys.Private,
-		RSAPublicKey:                      keys.Public,
-		AccessTokenExpiresInMinutes:       s.product.JwtConfig.AccessToken.ExpiresInMinutes,
-		RefreshTokenExpiresInMinutes:      s.product.JwtConfig.RefreshToken.ExpiresInMinutes,
-		RSAExpirationDate:                 time.Now().Add(365 * 24 * time.Hour),
-		RSAExpired:                        false,
-		AES256EncryptionKey:               *key,
-		AES256EncryptionKeyExpirationDate: time.Now().Add(365 * 24 * time.Hour),
-		AES256Expired:                     false,
+		Name:                         s.product.Name,
+		Description:                  s.product.Description,
+		ServerCert:                   certificates.Server.Cert,
+		ServerKey:                    certificates.Server.Key,
+		CaCert:                       certificates.CA.Cert,
+		CaKey:                        certificates.CA.Key,
+		SSLExpired:                   false,
+		RSAPrivateKey:                keys.Private,
+		RSAPublicKey:                 keys.Public,
+		AccessTokenExpiresInMinutes:  s.product.JwtConfig.AccessToken.ExpiresInMinutes,
+		RefreshTokenExpiresInMinutes: s.product.JwtConfig.RefreshToken.ExpiresInMinutes,
+		RSAExpirationDate:            time.Now().Add(365 * 24 * time.Hour),
+		RSAExpired:                   false,
 	}
 
 	if err = s.db.Create(newProduct).Error; err != nil {

@@ -60,7 +60,7 @@ func main() {
 	err = init_logger.NewService(config.LogLevel, config.LogFilePath, config.ConsoleLogEnabled).Init()
 	handleError(err, "init logger error")
 
-	db, err := init_database.NewService("./auth.db",
+	db, err := init_database.NewService([]byte(config.AES256EncryptionKey), "./auth.db",
 		&company_db.Company{},
 		&group_db.Group{},
 		&group_role_db.GroupRole{},

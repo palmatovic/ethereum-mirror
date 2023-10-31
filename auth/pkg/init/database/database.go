@@ -42,12 +42,13 @@ import (
 )
 
 type Service struct {
-	dbFilepath string
-	tables     []interface{}
+	aes256EncryptionKey []byte
+	dbFilepath          string
+	tables              []interface{}
 }
 
-func NewService(dbFilepath string, tables ...interface{}) *Service {
-	return &Service{dbFilepath: dbFilepath, tables: tables}
+func NewService(aes256EncryptionKey []byte, dbFilepath string, tables ...interface{}) *Service {
+	return &Service{aes256EncryptionKey: aes256EncryptionKey, dbFilepath: dbFilepath, tables: tables}
 }
 
 func (s *Service) Init() (db *gorm.DB, err error) {
