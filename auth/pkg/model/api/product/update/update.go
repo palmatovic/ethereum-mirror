@@ -24,5 +24,4 @@ type Product struct {
 			} `json:"refresh_token"`
 		} `json:"renew_token_config"`
 	} `json:"jwt_config,omitempty"`
-	RenewAES256 bool `json:"renew_aes_256"`
 }

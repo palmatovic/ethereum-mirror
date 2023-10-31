@@ -4,7 +4,6 @@ import (
 	product_db "auth/pkg/database/product"
 	model_update_product "auth/pkg/model/api/product/update"
 	"auth/pkg/service/product/get"
-	"auth/pkg/service_util/aes"
 	"auth/pkg/service_util/rsa"
 	"auth/pkg/service_util/ssl"
 	"github.com/gofiber/fiber/v2"
@@ -68,15 +67,6 @@ func (s *Service) Update() (status int, product *product_db.Product, err error) 
 			dbProduct.AccessTokenExpiresInMinutes = s.product.JwtConfig.RenewTokenConfig.AccessToken.ExpiresInMinutes
 			dbProduct.RefreshTokenExpiresInMinutes = s.product.JwtConfig.RenewTokenConfig.RefreshToken.ExpiresInMinutes
 		}
-	}
-	if s.product.RenewAES256 {
-		key, err := aes.NewService().NewAES256Key()
-		if err != nil {
-			return fiber.StatusInternalServerError, nil, err
-		}
-		dbProduct.AES256EncryptionKey = *key
-		dbProduct.AES256EncryptionKeyExpirationDate = time.Now().Add(365 * 24 * time.Hour)
-		dbProduct.AES256Expired = false
 	}
 
 	if err = s.db.Where("ProductId = ?", dbProduct.ProductId).Updates(dbProduct).Error; err != nil {
