@@ -31,6 +31,7 @@ import (
 	init_fiber "auth/pkg/init/fiber"
 	init_logger "auth/pkg/init/logger"
 	"auth/pkg/service/product/get_public_key"
+	"auth/pkg/service_util/aes"
 	token_util "auth/pkg/service_util/fiber/jwt/token"
 	"auth/pkg/service_util/fiber/jwt/validator"
 	company_url "auth/pkg/url/company"
@@ -60,7 +61,9 @@ func main() {
 	err = init_logger.NewService(config.LogLevel, config.LogFilePath, config.ConsoleLogEnabled).Init()
 	handleError(err, "init logger error")
 
-	db, err := init_database.NewService([]byte(config.AES256EncryptionKey), "./auth.db",
+	aes256EncryptionKey := aes.Key(config.AES256EncryptionKey)
+
+	db, err := init_database.NewService(&aes256EncryptionKey, "./auth.db",
 		&company_db.Company{},
 		&group_db.Group{},
 		&group_role_db.GroupRole{},
@@ -90,7 +93,7 @@ func main() {
 
 	jwtValidator := validator.NewService(publicKey).Validator()
 
-	productApi := product.NewApi(db)
+	productApi := product.NewApi(db, &aes256EncryptionKey)
 	companyApi := company.NewApi(db)
 	groupApi := group.NewApi(db)
 	groupRoleApi := group_role.NewApi(db)

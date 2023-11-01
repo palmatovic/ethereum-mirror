@@ -1,7 +1,7 @@
 package update
 
 import (
-	user_product_db "auth/pkg/database/user_product"
+	user_product_model "auth/pkg/model/api/user_product/update"
 	util_json "auth/pkg/model/json"
 	user_product_update_service "auth/pkg/service/user_product/update"
 	"encoding/json"
@@ -26,7 +26,7 @@ func NewApi(uuid string, url string, db *gorm.DB, body []byte) *Api {
 
 func (a *Api) Update() (status int, response interface{}) {
 	logrus.WithFields(a.fields).Info("started")
-	var userProduct user_product_db.UserProduct
+	var userProduct user_product_model.UserProduct
 	if err := json.Unmarshal(a.body, &userProduct); err != nil {
 		logrus.WithFields(a.fields).WithError(err).Errorf("terminated with failure")
 		return fiber.StatusInternalServerError, util_json.NewErrorResponse(fiber.StatusInternalServerError, err.Error())

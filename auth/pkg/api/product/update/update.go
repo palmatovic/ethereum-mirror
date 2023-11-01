@@ -4,6 +4,7 @@ import (
 	model_update_product "auth/pkg/model/api/product/update"
 	util_json "auth/pkg/model/json"
 	product_update_service "auth/pkg/service/product/update"
+	"auth/pkg/service_util/aes"
 	"encoding/json"
 	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
@@ -11,16 +12,18 @@ import (
 )
 
 type Api struct {
-	db     *gorm.DB
-	body   []byte
-	fields logrus.Fields
+	db                  *gorm.DB
+	body                []byte
+	fields              logrus.Fields
+	aes256EncryptionKey *aes.Key
 }
 
-func NewApi(uuid string, url string, db *gorm.DB, body []byte) *Api {
+func NewApi(uuid string, url string, db *gorm.DB, aes256EncryptionKey *aes.Key, body []byte) *Api {
 	return &Api{
-		body:   body,
-		db:     db,
-		fields: logrus.Fields{"uuid": uuid, "url": url, "body": string(body)},
+		body:                body,
+		db:                  db,
+		fields:              logrus.Fields{"uuid": uuid, "url": url, "body": string(body)},
+		aes256EncryptionKey: aes256EncryptionKey,
 	}
 }
 
@@ -31,7 +34,7 @@ func (a *Api) Update() (status int, response interface{}) {
 		logrus.WithFields(a.fields).WithError(err).Errorf("terminated with failure")
 		return fiber.StatusInternalServerError, util_json.NewErrorResponse(fiber.StatusInternalServerError, err.Error())
 	}
-	httpStatus, productDb, err := product_update_service.NewService(a.db, &product).Update()
+	httpStatus, productDb, err := product_update_service.NewService(a.db, &product, a.aes256EncryptionKey).Update()
 	if err != nil {
 		logrus.WithFields(a.fields).WithError(err).Errorf("terminated with failure")
 		return httpStatus, util_json.NewErrorResponse(httpStatus, err.Error())

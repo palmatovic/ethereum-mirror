@@ -77,6 +77,7 @@ func (s *Service) Create() (status int, newProduct *product_db.Product, err erro
 		ServerKey:                    *encryptedServerKey,
 		CaCert:                       *encryptedCACrt,
 		CaKey:                        *encryptedCAKey,
+		SSLExpirationDate:            time.Now().Add(365 * 24 * time.Hour),
 		SSLExpired:                   false,
 		RSAPrivateKey:                *encryptedRsaPrivateKey,
 		RSAPublicKey:                 *encryptedRsaPublicKey,

@@ -6,17 +6,19 @@ import (
 	"auth/pkg/api/product/get"
 	list "auth/pkg/api/product/list"
 	"auth/pkg/api/product/update"
+	"auth/pkg/service_util/aes"
 	"auth/pkg/url/product"
 	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 )
 
 type Api struct {
-	DB *gorm.DB
+	DB                  *gorm.DB
+	aes256EncryptionKey *aes.Key
 }
 
-func NewApi(db *gorm.DB) *Api {
-	return &Api{DB: db}
+func NewApi(db *gorm.DB, aes256EncryptionKey *aes.Key) *Api {
+	return &Api{DB: db, aes256EncryptionKey: aes256EncryptionKey}
 }
 
 func (e *Api) Get(ctx *fiber.Ctx) error {
@@ -29,12 +31,12 @@ func (e *Api) List(ctx *fiber.Ctx) error {
 }
 
 func (e *Api) Create(ctx *fiber.Ctx) error {
-	status, response := create.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Body()).Create()
+	status, response := create.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, e.aes256EncryptionKey, ctx.Body()).Create()
 	return ctx.Status(status).JSON(response)
 }
 
 func (e *Api) Update(ctx *fiber.Ctx) error {
-	status, response := update.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, ctx.Body()).Update()
+	status, response := update.NewApi(ctx.Locals("uuid").(string), ctx.OriginalURL(), e.DB, e.aes256EncryptionKey, ctx.Body()).Update()
 	return ctx.Status(status).JSON(response)
 }
 

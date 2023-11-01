@@ -1,8 +1,6 @@
 package create
 
 import (
-	product_db "auth/pkg/database/product"
-	user_db "auth/pkg/database/user"
 	user_product_db "auth/pkg/database/user_product"
 	user_product_model "auth/pkg/model/api/user_product/create"
 	"auth/pkg/service_util/aes"
@@ -76,9 +74,7 @@ func (s *Service) Create() (status int, userProduct *user_product_db.UserProduct
 
 	userProduct = &user_product_db.UserProduct{
 		UserId:               s.userProduct.UserId,
-		User:                 user_db.User{},
 		ProductId:            s.userProduct.ProductId,
-		Product:              product_db.Product{},
 		Enabled:              false,
 		ChangePassword:       true,
 		Password:             string(sha256Pwd[:]),
