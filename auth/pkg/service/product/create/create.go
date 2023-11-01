@@ -3,6 +3,7 @@ package create
 import (
 	product_db "auth/pkg/database/product"
 	model_create_product "auth/pkg/model/api/product/create"
+	"auth/pkg/service_util/aes"
 	"auth/pkg/service_util/rsa"
 	"auth/pkg/service_util/ssl"
 	"errors"
@@ -12,14 +13,16 @@ import (
 )
 
 type Service struct {
-	db      *gorm.DB
-	product *model_create_product.Product
+	db                  *gorm.DB
+	product             *model_create_product.Product
+	aes256EncryptionKey *aes.Key
 }
 
-func NewService(db *gorm.DB, product *model_create_product.Product) *Service {
+func NewService(db *gorm.DB, product *model_create_product.Product, aes256EncryptionKey *aes.Key) *Service {
 	return &Service{
-		db:      db,
-		product: product,
+		db:                  db,
+		product:             product,
+		aes256EncryptionKey: aes256EncryptionKey,
 	}
 }
 
@@ -41,16 +44,42 @@ func (s *Service) Create() (status int, newProduct *product_db.Product, err erro
 		return fiber.StatusInternalServerError, nil, err
 	}
 
+	encryptedCAKey, err := s.aes256EncryptionKey.Encrypt(string(certificates.CA.Key))
+	if err != nil {
+		return 0, nil, err
+	}
+	encryptedCACrt, err := s.aes256EncryptionKey.Encrypt(string(certificates.CA.Cert))
+	if err != nil {
+		return 0, nil, err
+	}
+	encryptedServerKey, err := s.aes256EncryptionKey.Encrypt(string(certificates.Server.Key))
+	if err != nil {
+		return 0, nil, err
+	}
+	encryptedServerCrt, err := s.aes256EncryptionKey.Encrypt(string(certificates.Server.Cert))
+	if err != nil {
+		return 0, nil, err
+	}
+
+	encryptedRsaPrivateKey, err := s.aes256EncryptionKey.Encrypt(string(keys.Private))
+	if err != nil {
+		return 0, nil, err
+	}
+	encryptedRsaPublicKey, err := s.aes256EncryptionKey.Encrypt(string(keys.Public))
+	if err != nil {
+		return 0, nil, err
+	}
+
 	newProduct = &product_db.Product{
 		Name:                         s.product.Name,
 		Description:                  s.product.Description,
-		ServerCert:                   certificates.Server.Cert,
-		ServerKey:                    certificates.Server.Key,
-		CaCert:                       certificates.CA.Cert,
-		CaKey:                        certificates.CA.Key,
+		ServerCert:                   *encryptedServerCrt,
+		ServerKey:                    *encryptedServerKey,
+		CaCert:                       *encryptedCACrt,
+		CaKey:                        *encryptedCAKey,
 		SSLExpired:                   false,
-		RSAPrivateKey:                keys.Private,
-		RSAPublicKey:                 keys.Public,
+		RSAPrivateKey:                *encryptedRsaPrivateKey,
+		RSAPublicKey:                 *encryptedRsaPublicKey,
 		AccessTokenExpiresInMinutes:  s.product.JwtConfig.AccessToken.ExpiresInMinutes,
 		RefreshTokenExpiresInMinutes: s.product.JwtConfig.RefreshToken.ExpiresInMinutes,
 		RSAExpirationDate:            time.Now().Add(365 * 24 * time.Hour),

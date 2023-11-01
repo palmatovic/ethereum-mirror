@@ -13,12 +13,13 @@ type UserProduct struct {
 	ProductId            int64           `json:"product_id" gorm:"column:ProductId;uniqueIndex:UserIdProductIdIdx"`
 	Product              product.Product `json:"-"`
 	Enabled              bool            `json:"enabled" gorm:"column:UserEnabled;default:0"`
+	ChangePassword       bool            `json:"change_password" gorm:"column:ChangePassword;default:0"`
 	Password             string          `json:"password" gorm:"column:Password;not null"`
 	PasswordExpirationAt time.Time       `json:"password_expiration_at" gorm:"column:PasswordExpirationAt"`
 	PasswordExpired      bool            `json:"password_expired" gorm:"column:PasswordExpired;default:0"`
-	MasterPasswordKey    []byte          `json:"master_password_key" gorm:"column:MasterKey"` // MasterPasswordKey used for reset lost/forgotten password
+	MasterPasswordKey    string          `json:"master_password_key" gorm:"column:MasterKey"` // MasterPasswordKey used for reset lost/forgotten password
 	TwoFAKey             string          `json:"two_fa_key" gorm:"column:2FAKey"`
-	MasterTwoFAKey       []byte          `json:"master_two_fa_key" gorm:"column:MasterTwoFAKey"` // MasterTwoFAKey used for reset lost 2FA
+	MasterTwoFAKey       string          `json:"master_two_fa_key" gorm:"column:MasterTwoFAKey"` // MasterTwoFAKey used for reset lost 2FA
 	CreatedAt            time.Time       `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
 	UpdatedAt            time.Time       `json:"updated_at" gorm:"column:UpdatedAt;autoUpdateTime"`
 }

@@ -1,7 +1,6 @@
 package wallet_transaction
 
 import (
-	"fmt"
 	"github.com/playwright-community/playwright-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -19,8 +18,6 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 		semaphore            = make(chan struct{}, concurrentGoroutines)
 		wg                   sync.WaitGroup
 	)
-
-	fmt.Printf("wallet_tokens = %v\n", len(walletTokens))
 
 	for _, wt := range walletTokens {
 		semaphore <- struct{}{}
@@ -58,10 +55,7 @@ func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.Wal
 				logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("failed to create wallet transactions by liquidity pool")
 				return
 			}
-			fmt.Printf("Found ats %v \n", ats)
 			if len(ats) > 0 {
-				fmt.Printf("Performin insertions for ats %v\n", ats)
-				fmt.Printf("ats inserted %d \n", len(ats))
 				err = db.Create(&ats).Error
 				if err != nil {
 					logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("failed to create wallet transactions")
@@ -95,7 +89,6 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 	}
 
 	poolSelector, err := locatorWithRetryCombined(&page, "xpath=//html/body/div[1]/div[2]/div/div[2]/div[2]/div[1]/div[2]/div[2]/p", 3)
-
 
 	//err = page.Locator("xpath=//html/body/div[1]/div[2]/div/div[2]/div[2]/div[1]/div[2]/div[2]/p").WaitFor(playwright.LocatorWaitForOptions{
 	//	State:   playwright.WaitForSelectorStateAttached,

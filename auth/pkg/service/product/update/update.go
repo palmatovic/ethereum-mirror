@@ -45,6 +45,7 @@ func (s *Service) Update() (status int, product *product_db.Product, err error) 
 		if err != nil {
 			return fiber.StatusInternalServerError, nil, err
 		}
+		
 		dbProduct.ServerCert = certificates.Server.Cert
 		dbProduct.ServerKey = certificates.Server.Key
 		dbProduct.CaCert = certificates.CA.Cert
