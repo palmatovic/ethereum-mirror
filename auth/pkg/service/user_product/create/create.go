@@ -4,7 +4,7 @@ import (
 	user_product_db "auth/pkg/database/user_product"
 	user_product_model "auth/pkg/model/api/user_product/create"
 	"auth/pkg/service_util/aes"
-	"crypto/sha256"
+	"auth/pkg/service_util/sha"
 	"errors"
 	"github.com/gofiber/fiber/v2"
 	"github.com/m1/go-generate-password/generator"
@@ -64,25 +64,18 @@ func (s *Service) Create() (status int, userProduct *user_product_db.UserProduct
 	if err != nil {
 		return fiber.StatusInternalServerError, nil, err
 	}
-	sha256Pwd := sha256.Sum256([]byte(*pwd))
-
-	sha256MasterPwdKey := sha256.Sum256(*masterPwdKey)
-
-	sha256MasterTwoFAKey := sha256.Sum256(*masterTwoFAKey)
-
-	sha256FAKey := sha256.Sum256([]byte(key.Secret()))
 
 	userProduct = &user_product_db.UserProduct{
 		UserId:               s.userProduct.UserId,
 		ProductId:            s.userProduct.ProductId,
 		Enabled:              false,
 		ChangePassword:       true,
-		Password:             string(sha256Pwd[:]),
+		Password:             sha.NewService(*pwd).Sha256(),
 		PasswordExpirationAt: time.Now().Add(time.Hour * 24 * 365),
 		PasswordExpired:      false,
-		MasterPasswordKey:    string(sha256MasterPwdKey[:]),
-		TwoFAKey:             string(sha256FAKey[:]),
-		MasterTwoFAKey:       string(sha256MasterTwoFAKey[:]),
+		MasterPasswordKey:    sha.NewService(string(*masterPwdKey)).Sha256(),
+		TwoFAKey:             sha.NewService(key.Secret()).Sha256(),
+		MasterTwoFAKey:       sha.NewService(string(*masterTwoFAKey)).Sha256(),
 	}
 
 	if err = s.db.Create(userProduct).Error; err != nil {

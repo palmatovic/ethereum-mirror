@@ -4,7 +4,7 @@ import (
 	user_product_db "auth/pkg/database/user_product"
 	user_product_model "auth/pkg/model/api/user_product/update"
 	"auth/pkg/service/user_product/get"
-	"crypto/sha256"
+	"auth/pkg/service_util/sha"
 	"errors"
 	"github.com/gofiber/fiber/v2"
 	"github.com/pquerna/otp"
@@ -60,29 +60,25 @@ func (s *Service) Update() (status int, group *user_product_db.UserProduct, err 
 		if !validPassword(s.userProduct.RenewPassword.NewPassword) {
 			return fiber.StatusBadRequest, nil, errors.New("new_password is not valid")
 		}
-		sha256Password := sha256.Sum256([]byte(s.userProduct.RenewPassword.NewPassword))
-		dbUserProduct.Password = string(sha256Password[:])
+		dbUserProduct.Password = sha.NewService(s.userProduct.RenewPassword.NewPassword).Sha256()
 		dbUserProduct.PasswordExpired = false
 		dbUserProduct.PasswordExpirationAt = time.Now().Add(time.Hour * 24 * 365)
 		dbUserProduct.ChangePassword = false
 		break
 	case s.userProduct.ForgotPassword != nil:
-		sha256MasterPasswordKey := sha256.Sum256([]byte(s.userProduct.ForgotPassword.MasterPasswordKey))
-		if string(sha256MasterPasswordKey[:]) != dbUserProduct.MasterPasswordKey {
+		if sha.NewService(s.userProduct.ForgotPassword.MasterPasswordKey).Sha256() != dbUserProduct.MasterPasswordKey {
 			return fiber.StatusBadRequest, nil, errors.New("master_password_key does not match")
 		}
 		if s.userProduct.ForgotPassword.NewPassword != s.userProduct.ForgotPassword.RepeatNewPassword {
 			return fiber.StatusBadRequest, nil, errors.New("new_password and repeat_new_password do not match")
 		}
-		sha256Password := sha256.Sum256([]byte(s.userProduct.RenewPassword.NewPassword))
-		dbUserProduct.Password = string(sha256Password[:])
+		dbUserProduct.Password = sha.NewService(s.userProduct.RenewPassword.NewPassword).Sha256()
 		dbUserProduct.PasswordExpired = false
 		dbUserProduct.PasswordExpirationAt = time.Now().Add(time.Hour * 24 * 365)
 		dbUserProduct.ChangePassword = false
 		break
 	case s.userProduct.ForgotTwoFA != nil:
-		sha256MasterTwoFAKey := sha256.Sum256([]byte(s.userProduct.ForgotTwoFA.MasterTwoFAKey))
-		if string(sha256MasterTwoFAKey[:]) != dbUserProduct.MasterTwoFAKey {
+		if sha.NewService(s.userProduct.ForgotTwoFA.MasterTwoFAKey).Sha256() != dbUserProduct.MasterTwoFAKey {
 			return fiber.StatusBadRequest, nil, errors.New("master_two_fa_key does not match")
 		}
 		key, err := totp.Generate(totp.GenerateOpts{
@@ -93,8 +89,7 @@ func (s *Service) Update() (status int, group *user_product_db.UserProduct, err 
 		if err != nil {
 			return fiber.StatusInternalServerError, nil, err
 		}
-		sha256FAKey := sha256.Sum256([]byte(key.Secret()))
-		dbUserProduct.TwoFAKey = string(sha256FAKey[:])
+		dbUserProduct.TwoFAKey = sha.NewService(key.Secret()).Sha256()
 	}
 
 	if err = s.db.Where("UserProductRoleId = ?", dbUserProduct.UserProductId).Updates(dbUserProduct).Error; err != nil {
