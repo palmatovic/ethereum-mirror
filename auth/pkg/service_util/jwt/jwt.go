@@ -38,8 +38,7 @@ type Resource struct {
 }
 
 type Perm struct {
-	Id   int    `json:"id"`
-	Name string `json:"name"`
+	Id string `json:"id"`
 }
 
 type Product struct {

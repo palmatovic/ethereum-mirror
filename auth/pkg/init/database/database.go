@@ -14,6 +14,8 @@ import (
 	user_group_role_db "auth/pkg/database/user_group_role"
 	"auth/pkg/model/api/product/create"
 	user_product_create_model "auth/pkg/model/api/user_product/create"
+	perm_constants "auth/pkg/perm"
+	resource_constants "auth/pkg/resource"
 	company_create_service "auth/pkg/service/company/create"
 	group_create_service "auth/pkg/service/group/create"
 	group_role_create_service "auth/pkg/service/group_role/create"
@@ -129,23 +131,7 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 	}
 
 	var resources = new([]resource_db.Resource)
-	for _, value := range []string{
-		"login",
-		"logout",
-		"otp",
-		"product",
-		"company",
-		"group",
-		"role",
-		"group_role",
-		"resource",
-		"perm",
-		"resource_perm",
-		"group_role_resource_perm",
-		"user_product",
-		"user_resource_perm",
-		"change_password",
-	} {
+	for _, value := range resource_constants.AllResource {
 		var resource *resource_db.Resource
 		if _, resource, err = resource_create_service.NewService(tx, &resource_db.Resource{
 			Name: value,
@@ -156,13 +142,7 @@ func (s *Service) Init() (db *gorm.DB, err error) {
 	}
 
 	var perms = new([]perm_db.Perm)
-	for _, value := range []string{
-		"create",
-		"update",
-		"get",
-		"list",
-		"delete",
-	} {
+	for _, value := range perm_constants.AllPerm {
 		var perm *perm_db.Perm
 		if _, perm, err = perm_create_service.NewService(tx, &perm_db.Perm{
 			PermId: value,
