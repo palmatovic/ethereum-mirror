@@ -16,7 +16,6 @@ const (
 	User                  = "user"
 	UserGroupRole         = "user_group_role"
 	UserProduct           = "user_product"
-	UserResourcePerm      = "user_resource_perm"
 )
 
 var AllResource = []string{
@@ -35,5 +34,4 @@ var AllResource = []string{
 	User,
 	UserGroupRole,
 	UserProduct,
-	UserResourcePerm,
 }
