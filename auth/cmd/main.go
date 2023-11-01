@@ -88,7 +88,7 @@ func main() {
 		return runSyncJob(ctx, db, config.SyncJobIntervalMinutes)
 	})
 
-	_, publicKey, err := get_public_key.NewService(db, "auth").Get()
+	_, publicKey, err := get_public_key.NewService(db, &aes256EncryptionKey, "auth").Get()
 	handleError(err, "get auth public key error")
 
 	jwtValidator := validator.NewService(publicKey).Validator()

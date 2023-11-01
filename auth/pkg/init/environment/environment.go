@@ -13,7 +13,7 @@ type AppConfig struct {
 	LogLevel               string `env:"LOG_LEVEL" envDefault:"debug"`
 	LogFilePath            string `env:"LOG_FILE_PATH" envDefault:"./auth.log"`
 	ConsoleLogEnabled      bool   `env:"CONSOLE_LOG_ENABLED" envDefault:"true"`
-	AES256EncryptionKey    string `env:"AES256_ENCRYPTION_KEY" envDefault:"6klNXA1WqPyVpye+4SRrqdTAIj/yEd+1wmOqqrlQcMNdWtdSk221usBEc0TQMV3X"`
+	AES256EncryptionKey    string `env:"AES256_ENCRYPTION_KEY" envDefault:"EBCpGxd23e5CJSC2DpgT8w1tcDtiAaqE"`
 }
 
 type Service struct {
