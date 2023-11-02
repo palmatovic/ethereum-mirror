@@ -3,7 +3,6 @@ package wallet
 import (
 	"github.com/graphql-go/graphql"
 	"time"
-	"wallet-synchronizer/pkg/database/wallet_token"
 )
 
 func (Wallet) TableName() string {
@@ -11,10 +10,9 @@ func (Wallet) TableName() string {
 }
 
 type Wallet struct {
-	WalletId    string    `json:"wallet_id" gorm:"column:WalletId;primaryKey"`
-	Type        bool      `json:"type" gorm:"column:Type;not null"`
-	CreatedAt   time.Time `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
-	WalletToken []wallet_token.WalletToken
+	WalletId  string    `json:"wallet_id" gorm:"column:WalletId;primaryKey"`
+	Type      bool      `json:"type" gorm:"column:Type;not null"`
+	CreatedAt time.Time `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
 }
 
 var WalletGraphQL = graphql.NewObject(graphql.ObjectConfig{
