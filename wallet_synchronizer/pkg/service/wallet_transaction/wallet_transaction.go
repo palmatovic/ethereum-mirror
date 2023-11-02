@@ -232,7 +232,7 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 			var at wallet_transaction.WalletTransaction
 			at.Pool = strings.Split(poolName, " ")[0]
 			at.WalletId = walletToken.WalletId
-			at.Asset = walletToken.TokenId
+			at.TokenId = walletToken.TokenId
 
 			for colNum, _ := range cols {
 
