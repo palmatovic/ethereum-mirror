@@ -25,7 +25,7 @@ type WalletTransaction struct {
 	WalletId                   string        `json:"wallet_id" gorm:"column:WalletId"`
 	Wallet                     wallet.Wallet `json:"-"`
 	CreatedAt                  time.Time     `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
-	ProcessedByOrderExecutor   bool          `json:"processed_by_order_executor" gorm:"column:ProcessedByOrderExecutor;type:boolean;default:false"`
+	ProcessedByOrderExecutor   bool          `json:"processed_by_order_executor" gorm:"column:ProcessedByOrderExecutor;default:0"`
 	ProcessedByOrderExecutorAt time.Time     `json:"processed_by_order_executor_at" gorm:"column:ProcessedByOrderExecutorAt;type:DATETIME"`
 }
 
