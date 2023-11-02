@@ -2,7 +2,7 @@ package wallet_token
 
 import (
 	token_db "order-executor/pkg/model/database/token"
-	"order-executor/pkg/model/pkg/database/wallet"
+	wallet "order-executor/pkg/model/database/wallet"
 	"time"
 
 	"github.com/graphql-go/graphql"

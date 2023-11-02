@@ -71,7 +71,7 @@ func main() {
 		mutex.Lock()
 		defer mutex.Unlock() // Unlock the mutex when the function finishes
 
-		_, syncErr := c.ExecuteOrdres()
+		_, syncErr := c.ExecuteOrders()
 		if syncErr != nil {
 			log.Errorln("error during database sync:", syncErr)
 		} else {
