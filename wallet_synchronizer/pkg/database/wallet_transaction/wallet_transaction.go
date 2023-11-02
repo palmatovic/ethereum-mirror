@@ -64,7 +64,7 @@ var WalletTransactionGraphQL = graphql.NewObject(graphql.ObjectConfig{
 			Type: graphql.DateTime,
 		},
 		"processed_by_order_executor": &graphql.Field{
-			Type: graphql.Bool,
+			Type: graphql.Boolean,
 		},
 		"processed_by_order_executor_at": &graphql.Field{
 			Type: graphql.DateTime,
