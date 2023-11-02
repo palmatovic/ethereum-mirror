@@ -15,34 +15,52 @@ func NewService(tokenAddress string) *Service {
 	return &Service{tokenAddress: tokenAddress}
 }
 
-func (s *Service) ScamCheck() (response models.ResponseWrapperTokenSecurityResultAnon, err error) {
+func (s *Service) ScamCheck() (isScam bool, err error) {
 	tokenSecurity := token.NewTokenSecurity(nil)
 	chainId := "1"
 	contractAddresses := []string{s.tokenAddress}
 	data, err := tokenSecurity.Run(chainId, contractAddresses)
 	if err != nil {
-		return response, err
+		return false, err
 	}
 	if data.Payload.Code != errorcode.SUCCESS {
-		return response, err
+		return false, err
 	}
-	var ok bool
-	response, ok = data.Payload.Result[s.tokenAddress]
-	doScamCheck(&response)
+	response, ok := data.Payload.Result[s.tokenAddress]
+
 	if ok {
-		return response, nil
+		isScam = doScamCheck(&response)
+		return isScam, nil
 	} else {
-		return response, errors.New("result not contains token address")
+		return false, errors.New("result not contains token address")
 	}
 }
 
 func doScamCheck(response *models.ResponseWrapperTokenSecurityResultAnon) bool {
+
+	if response.TrustList == "1" {
+		return false
+	}
+
+	if response.IsTrueToken == "0" {
+		return true
+	}
+
 	riskyItems, _ := riskWarningCount(response)
 
 	return riskyItems >= 1
 }
 
 func riskWarningCount(response *models.ResponseWrapperTokenSecurityResultAnon) (risky int, attention int) {
+
+	if response.IsOpenSource == "0" {
+		attention++
+	}
+
+	if response.CanTakeBackOwnership == "1" {
+		attention++
+	}
+
 	if response.IsMintable == "1" {
 		attention++
 	}
@@ -52,6 +70,14 @@ func riskWarningCount(response *models.ResponseWrapperTokenSecurityResultAnon) (
 	}
 
 	if response.HiddenOwner == "1" {
+		attention++
+	}
+
+	if response.CannotSellAll == "1" {
+		risky++
+	}
+
+	if response.TransferPausable == "1" {
 		attention++
 	}
 

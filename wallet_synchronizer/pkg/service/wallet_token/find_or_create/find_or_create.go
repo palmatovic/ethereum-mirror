@@ -57,10 +57,10 @@ func (s *Service) FindOrCreateWalletTokens() (walletTokens []wallet_token_db.Wal
 					logrus.WithFields(logFields).WithError(err).Error("cannot find or create token")
 					return
 				}
-				//if tokenDb.RiskScam != 0 || tokenDb.WarningScam != 0 {
-				//	//logrus.WithFields(logrus.Fields{"wallet_id": walletDb.WalletId, "token_contract_address": walletBalance.TokenContractAddress}).Warningf("scam token found. skipping process")
-				//	return
-				//}
+				if tokenDb.GoPlusResponse {
+					//logrus.WithFields(logrus.Fields{"wallet_id": walletDb.WalletId, "token_contract_address": walletBalance.TokenContractAddress}).Warningf("scam token found. skipping process")
+					return
+				}
 				tokenAmount := util_string.CalculateAmount(walletBalance.TokenBalance, tokenDb.Decimals)
 				var walletToken *wallet_token_db.WalletToken
 

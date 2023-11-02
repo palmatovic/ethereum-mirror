@@ -13,7 +13,7 @@ type Token struct {
 	Decimals       int       `json:"decimals" gorm:"column:Decimals;not null"`
 	CreatedAt      time.Time `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
 	Logo           string    `json:"logo" gorm:"column:Logo"`
-	GoPlusResponse []byte    `json:"go_plus_response" gorm:"column:GoPlusResponse"`
+	GoPlusResponse bool      `json:"go_plus_response" gorm:"column:GoPlusResponse"`
 }
 
 func (Token) TableName() string {
