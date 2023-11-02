@@ -1,7 +1,6 @@
 package token
 
 import (
-	"encoding/json"
 	"github.com/graphql-go/graphql"
 	"time"
 )
@@ -14,7 +13,7 @@ type Token struct {
 	CreatedAt      time.Time `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
 	Logo           string    `json:"logo" gorm:"column:Logo"`
 	CurrentPrice   float64   `json:"current_price" gorm:"column:CurrentPrice"`
-	GoPlusResponse []byte    `json:"go_plus_response" gorm:"column:GoPlusResponse"`
+	GoPlusResponse bool      `json:"go_plus_response" gorm:"column:GoPlusResponse"`
 }
 
 func (Token) TableName() string {
@@ -45,15 +44,20 @@ var TokenGraphQL = graphql.NewObject(graphql.ObjectConfig{
 		"current_price": &graphql.Field{
 			Type: graphql.Float,
 		},
+		/*
+			"go_plus_response": &graphql.Field{
+				Type: graphql.NewScalar(graphql.ScalarConfig{
+					Name: "Json",
+					Serialize: func(value interface{}) interface{} {
+						var serialized map[string]interface{}
+						_ = json.Unmarshal(value.([]byte), &serialized)
+						return serialized
+					},
+				}),
+			},
+		*/
 		"go_plus_response": &graphql.Field{
-			Type: graphql.NewScalar(graphql.ScalarConfig{
-				Name: "Json",
-				Serialize: func(value interface{}) interface{} {
-					var serialized map[string]interface{}
-					_ = json.Unmarshal(value.([]byte), &serialized)
-					return serialized
-				},
-			}),
+			Type: graphql.Boolean,
 		},
 	},
 })

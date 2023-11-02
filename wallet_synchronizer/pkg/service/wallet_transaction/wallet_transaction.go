@@ -14,7 +14,7 @@ import (
 func FindOrCreateWalletTransactions(db *gorm.DB, walletTokens []wallet_token.WalletToken, browser playwright.Browser) (err error) {
 
 	var (
-		concurrentGoroutines = 5
+		concurrentGoroutines = 1
 		semaphore            = make(chan struct{}, concurrentGoroutines)
 		wg                   sync.WaitGroup
 	)
@@ -238,6 +238,9 @@ func FindOrCreateWalletTransactionByLiquidityPool(walletToken wallet_token.Walle
 
 				if colNum == 0 {
 					at.TxType, err = cols[colNum].InnerText()
+					if at.TxType == "Add" || at.TxType == "Remove" {
+						continue
+					}
 					if err != nil {
 						logrus.WithField("wallet_token", walletToken).WithError(err).Errorf("cannot get inner text row %d column %d", rowNum, colNum)
 						return nil, err
