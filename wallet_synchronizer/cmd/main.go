@@ -47,6 +47,7 @@ type AppConfig struct {
 	LogLevel              string `env:"LOG_LEVEL" envDefault:"debug"`
 	LogFilePath           string `env:"LOG_FILE_PATH" envDefault:"./wallet_synchronizer.log"`
 	ConsoleLogEnable      bool   `env:"CONSOLE_LOG_ENABLE" envDefault:"true"`
+	OwnWallet             string `env:"OWN_WALLET" envDefault:"0x251e929c9b5887e2d30b38dec708b7e40fb8c492"`
 }
 
 func main() {

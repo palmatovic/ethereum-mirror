@@ -1,6 +1,7 @@
 package sync
 
 import (
+	"errors"
 	"github.com/playwright-community/playwright-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -16,25 +17,48 @@ type Sync struct {
 	Browser       playwright.Browser
 	Database      *gorm.DB
 	AlchemyApiKey string
+	OwnWallet     string
 }
 
-func NewSync(browser playwright.Browser, db *gorm.DB, alchemyApiKey string) *Sync {
+func NewSync(browser playwright.Browser, db *gorm.DB, ownWallet, alchemyApiKey string) *Sync {
 	return &Sync{
 		Browser:       browser,
 		Database:      db,
 		AlchemyApiKey: alchemyApiKey,
+		OwnWallet:     ownWallet,
 	}
 }
 
 func (e *Sync) Sync() {
 	logrus.Infof("sync started")
 
+	var ownWalletDb *wallet.Wallet
+	if err := e.Database.Where("WalletId = ?", e.OwnWallet).First(ownWalletDb).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			ownWalletDb = &wallet.Wallet{
+				WalletId: e.OwnWallet,
+				Type:     false,
+			}
+			if err = e.Database.Create(ownWalletDb).Error; err != nil {
+				logrus.WithError(err).Errorf("failed to create own wallet")
+				return
+			}
+		}
+	}
+
+	_, err := wallet_token_service.NewService(e.Database, e.AlchemyApiKey, *ownWalletDb).FindOrCreateWalletTokens()
+	if err != nil {
+		logrus.WithError(err).Error("cannot find or create own wallet tokens")
+		return
+	}
+
 	var wallets []wallet.Wallet
 
-	if err := e.Database.Find(&wallets).Error; err != nil {
+	if err = e.Database.Where("Type = 1").Find(&wallets).Error; err != nil {
 		logrus.WithError(err).Errorf("failed to find wallets")
 		return
 	}
+
 	var (
 		concurrentGoroutines = 10
 		semaphore            = make(chan struct{}, concurrentGoroutines)
@@ -52,7 +76,7 @@ func (e *Sync) Sync() {
 				<-semaphore
 			}()
 
-			wall, err := wallet_find_or_create_service.NewService(e.Database, wAddress).FindOrCreateWallet()
+			wall, err := wallet_find_or_create_service.NewService(e.Database, wAddress).FindOrCreateWalletToMonitor()
 			if err != nil {
 				logrus.WithError(err).Error("cannot find or create wallet")
 				return

@@ -20,10 +20,10 @@ func NewService(db *gorm.DB, walletAddress string) *Service {
 	}
 }
 
-func (s *Service) FindOrCreateWallet() (wallet *wallet_db.Wallet, err error) {
+func (s *Service) FindOrCreateWalletToMonitor() (wallet *wallet_db.Wallet, err error) {
 	if _, wallet, err = wallet_get_service.NewService(s.db, s.walletAddress).Get(); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			if _, wallet, err = wallet_create_service.NewService(s.db, &wallet_db.Wallet{WalletId: s.walletAddress}).Create(); err != nil {
+			if _, wallet, err = wallet_create_service.NewService(s.db, &wallet_db.Wallet{WalletId: s.walletAddress, Type: true}).Create(); err != nil {
 				return wallet, err
 			}
 		}
