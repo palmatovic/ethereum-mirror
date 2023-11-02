@@ -2,7 +2,6 @@ package find_or_create
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/sirupsen/logrus"
@@ -53,15 +52,16 @@ func (s *Service) FindOrCreateToken() (token *token_db.Token, err error) {
 			}
 
 			_, token, err = token_create_service.NewService(s.db, &token_db.Token{
-				TokenId:  s.contractAddress,
-				Name:     tokenMetadata.Result.Name,
-				Symbol:   tokenMetadata.Result.Symbol,
-				Decimals: tokenMetadata.Result.Decimals,
-				Logo:     logo,
-				GoPlusResponse: func() []byte {
-					b, _ := json.Marshal(goplusResponse)
-					return b
-				}(),
+				TokenId:        s.contractAddress,
+				Name:           tokenMetadata.Result.Name,
+				Symbol:         tokenMetadata.Result.Symbol,
+				Decimals:       tokenMetadata.Result.Decimals,
+				Logo:           logo,
+				GoPlusResponse: goplusResponse,
+				//GoPlusResponse: func() []byte {
+				//	b, _ := json.Marshal(goplusResponse)
+				//	return b
+				//}(),
 			}).Create()
 			if err != nil {
 				return token, err
@@ -75,10 +75,11 @@ func (s *Service) FindOrCreateToken() (token *token_db.Token, err error) {
 		if errScam != nil {
 			return token, errScam
 		}
-		token.GoPlusResponse = func() []byte {
+		token.GoPlusResponse = goplusResponse
+		/*token.GoPlusResponse = func() []byte {
 			b, _ := json.Marshal(goplusResponse)
 			return b
-		}()
+		}()*/
 		_, token, err = token_update_service.NewService(s.db, token).Update()
 		if err != nil {
 			return token, err
