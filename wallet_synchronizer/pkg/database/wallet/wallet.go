@@ -21,6 +21,9 @@ var WalletGraphQL = graphql.NewObject(graphql.ObjectConfig{
 		"wallet_id": &graphql.Field{
 			Type: graphql.String,
 		},
+		"type": &graphql.Field{
+			Type: graphql.Boolean,
+		},
 		"created_at": &graphql.Field{
 			Type: graphql.DateTime,
 		},
@@ -31,5 +34,6 @@ var CreateWalletGraphQL = graphql.NewInputObject(graphql.InputObjectConfig{
 	Name: "create_wallet",
 	Fields: graphql.InputObjectConfigFieldMap{
 		"wallet_id": &graphql.InputObjectFieldConfig{Type: graphql.NewNonNull(graphql.String)},
+		"type":      &graphql.InputObjectFieldConfig{Type: graphql.NewNonNull(graphql.Boolean)},
 	},
 })
