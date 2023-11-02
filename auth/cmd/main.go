@@ -33,6 +33,7 @@ import (
 	perm_constants "auth/pkg/perm"
 	resource_constants "auth/pkg/resource"
 	"auth/pkg/service/product/get_public_key"
+	"auth/pkg/service/product/get_server_ssl"
 	"auth/pkg/service_util/aes"
 	token_util "auth/pkg/service_util/fiber/jwt/token"
 	"auth/pkg/service_util/fiber/jwt/validator"
@@ -49,6 +50,7 @@ import (
 	user_group_role_url "auth/pkg/url/user_group_role"
 	user_product_url "auth/pkg/url/user_product"
 	"context"
+	"crypto/tls"
 	"github.com/gofiber/fiber/v2"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/sync/errgroup"
@@ -93,6 +95,12 @@ func main() {
 	_, publicKey, err := get_public_key.NewService(db, &aes256EncryptionKey, "auth").Get()
 	handleError(err, "get auth public key error")
 
+	_, serverSslCert, serverSslKey, err := get_server_ssl.NewService(db, &aes256EncryptionKey, "auth").Get()
+	handleError(err, "get auth server ssl error")
+
+	sslCert, err := tls.X509KeyPair(serverSslCert, serverSslKey)
+	handleError(err, "get server ssl error")
+
 	jwtValidator := validator.NewService(publicKey).Validator()
 
 	productApi := product.NewApi(db, &aes256EncryptionKey)
@@ -107,8 +115,9 @@ func main() {
 	userApi := user.NewApi(db)
 	userGroupRoleApi := user_group_role.NewApi(db)
 	userProductApi := user_product.NewApi(db)
+
 	eg.Go(func() error {
-		return init_fiber.NewService(ctx, config.FiberPort, []init_fiber.Api{
+		return init_fiber.NewService(sslCert, ctx, config.FiberPort, []init_fiber.Api{
 
 			init_fiber.NewApi("GET", product_url.Get, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, token_util.HasResourcePerm(resource_constants.Product, perm_constants.Get), productApi.Get}),
 			init_fiber.NewApi("GET", product_url.List, []fiber.Handler{jwtValidator, token_util.AccessTokenValidator, token_util.HasResourcePerm(resource_constants.Product, perm_constants.List), productApi.List}),

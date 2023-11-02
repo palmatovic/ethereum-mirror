@@ -2,6 +2,7 @@ package fiber
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/requestid"
@@ -13,6 +14,7 @@ type Service struct {
 	ctx     context.Context
 	port    int64
 	apiList []Api
+	cert    tls.Certificate
 }
 
 type Api struct {
@@ -33,24 +35,24 @@ func NewApi(
 }
 
 func NewService(
+	cert tls.Certificate,
 	ctx context.Context,
 	port int64,
 	apiList []Api,
-
 ) *Service {
 	return &Service{
 		ctx:     ctx,
 		port:    port,
 		apiList: apiList,
+		cert:    cert,
 	}
 }
 
 func (s *Service) Init() error {
 	app := initializeFiberApp(s.apiList)
 	app.Server()
-
-	addr := fmt.Sprintf(":%d", s.port)
-	err := app.Listen(addr)
+	address := fmt.Sprintf(":%d", s.port)
+	err := app.ListenTLSWithCertificate(address, s.cert)
 	if err != nil {
 		select {
 		case <-s.ctx.Done():
