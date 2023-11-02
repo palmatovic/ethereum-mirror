@@ -136,8 +136,7 @@ func initializePlaywright() (*playwright.Playwright, error) {
 
 func initializeBrowser(pw *playwright.Playwright, browserPath string, headless bool) playwright.Browser {
 	browser, err := pw.Chromium.Launch(playwright.BrowserTypeLaunchOptions{
-		Headless:       playwright.Bool(headless),
-		ExecutablePath: playwright.String(browserPath),
+		Headless: playwright.Bool(headless),
 	})
 	handleError(err, "error during browser launch")
 	return browser

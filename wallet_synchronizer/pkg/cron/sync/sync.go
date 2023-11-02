@@ -32,21 +32,21 @@ func NewSync(browser playwright.Browser, db *gorm.DB, ownWallet, alchemyApiKey s
 func (e *Sync) Sync() {
 	logrus.Infof("sync started")
 
-	var ownWalletDb *wallet.Wallet
-	if err := e.Database.Where("WalletId = ?", e.OwnWallet).First(ownWalletDb).Error; err != nil {
+	var ownWalletDb wallet.Wallet
+	if err := e.Database.Where("WalletId = ?", e.OwnWallet).First(&ownWalletDb).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ownWalletDb = &wallet.Wallet{
+			ownWalletDb = wallet.Wallet{
 				WalletId: e.OwnWallet,
 				Type:     false,
 			}
-			if err = e.Database.Create(ownWalletDb).Error; err != nil {
+			if err = e.Database.Create(&ownWalletDb).Error; err != nil {
 				logrus.WithError(err).Errorf("failed to create own wallet")
 				return
 			}
 		}
 	}
 
-	_, err := wallet_token_service.NewService(e.Database, e.AlchemyApiKey, *ownWalletDb).FindOrCreateWalletTokens()
+	_, err := wallet_token_service.NewService(e.Database, e.AlchemyApiKey, ownWalletDb).FindOrCreateWalletTokens()
 	if err != nil {
 		logrus.WithError(err).Error("cannot find or create own wallet tokens")
 		return
