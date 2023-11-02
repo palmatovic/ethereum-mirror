@@ -63,7 +63,7 @@ func main() {
 	var eg errgroup.Group
 
 	eg.Go(func() error {
-		return runSyncJob(ctx, db, config.BrowserPath, config.PlaywrightHeadless, config.AlchemyAPIKey, config.ScrapeIntervalMinutes)
+		return runSyncJob(ctx, db, config.BrowserPath, config.PlaywrightHeadless, config.OwnWallet, config.AlchemyAPIKey, config.ScrapeIntervalMinutes)
 	})
 
 	eg.Go(func() error {
@@ -143,7 +143,7 @@ func initializeBrowser(pw *playwright.Playwright, browserPath string, headless b
 	return browser
 }
 
-func runSyncJob(ctx context.Context, db *gorm.DB, browserPath string, headless bool, apiKey string, interval int) error {
+func runSyncJob(ctx context.Context, db *gorm.DB, browserPath string, headless bool, ownWallet string, apiKey string, interval int) error {
 	pw, err := initializePlaywright()
 	handleError(err, "error during playwright initialization")
 
@@ -153,7 +153,7 @@ func runSyncJob(ctx context.Context, db *gorm.DB, browserPath string, headless b
 		}
 	}()
 
-	c := syncronizer.NewSync(initializeBrowser(pw, browserPath, headless), db, apiKey)
+	c := syncronizer.NewSync(initializeBrowser(pw, browserPath, headless), db, ownWallet, apiKey)
 
 	ticker := time.NewTicker(time.Duration(interval) * time.Minute)
 	defer ticker.Stop()
