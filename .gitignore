@@ -9,3 +9,4 @@
 /wallet_synchronizer_node/
 /auth/.idea/
 /auth/*.log
+/order_executor/cmd/*.exe
