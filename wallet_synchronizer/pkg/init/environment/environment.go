@@ -17,7 +17,6 @@ type AppConfig struct {
 	LogFilePath             string `env:"LOG_FILE_PATH" envDefault:"./wallet_synchronizer.log"`
 	ConsoleLogEnabled       bool   `env:"CONSOLE_LOG_ENABLED" envDefault:"true"`
 	OwnWallet               string `env:"OWN_WALLET" envDefault:"0x251e929c9b5887e2d30b38dec708b7e40fb8c492"`
-	AES256EncryptionKey     string `env:"AES_256_ENCRYPTION_KEY" envDefault:"pCwfqAnnj8lcVwSb1VaVFoYeA5X8rSYt"`
 	ServerSSLCertFilepath   string `env:"SERVER_SSLCERT_FILEPATH,required"`
 	ServerSSLKeyFilepath    string `env:"SERVER_SSLKEY_FILEPATH,required"`
 	RSA256PublicKeyFilepath string `env:"RSA_256_PUBLIC_KEY_FILEPATH,required"`

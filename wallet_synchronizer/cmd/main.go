@@ -27,7 +27,6 @@ import (
 	init_playwright "wallet-synchronizer/pkg/init/playwright"
 	"wallet-synchronizer/pkg/perm"
 	"wallet-synchronizer/pkg/resource"
-	"wallet-synchronizer/pkg/service_util/aes"
 	"wallet-synchronizer/pkg/service_util/fiber/jwt/token"
 	"wallet-synchronizer/pkg/service_util/fiber/jwt/validator"
 	"wallet-synchronizer/pkg/service_util/rsa"
@@ -49,10 +48,7 @@ func main() {
 	err = init_logger.NewService(config.LogLevel, config.LogFilePath, config.ConsoleLogEnabled).Init()
 	handleError(err, "init logger error")
 
-	aes256EncryptionKey := aes.Key(config.AES256EncryptionKey)
-
 	db, err := init_database.NewService(
-		&aes256EncryptionKey,
 		"./wallet_synchronizer.db",
 		config.OwnWallet,
 		&wallet.Wallet{},

@@ -6,22 +6,19 @@ import (
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 	"wallet-synchronizer/pkg/database/wallet"
-	"wallet-synchronizer/pkg/service_util/aes"
 )
 
 type Service struct {
-	aes256EncryptionKey *aes.Key
-	dbFilepath          string
-	tables              []interface{}
-	ownWallet           string
+	dbFilepath string
+	tables     []interface{}
+	ownWallet  string
 }
 
-func NewService(aes256EncryptionKey *aes.Key, dbFilepath string, ownWallet string, tables ...interface{}) *Service {
+func NewService(dbFilepath string, ownWallet string, tables ...interface{}) *Service {
 	return &Service{
-		aes256EncryptionKey: aes256EncryptionKey,
-		dbFilepath:          dbFilepath,
-		tables:              tables,
-		ownWallet:           ownWallet,
+		dbFilepath: dbFilepath,
+		tables:     tables,
+		ownWallet:  ownWallet,
 	}
 }
 
