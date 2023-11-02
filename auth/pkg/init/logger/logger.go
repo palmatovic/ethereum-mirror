@@ -2,9 +2,9 @@ package logger
 
 import (
 	"github.com/sirupsen/logrus"
+	"go.elastic.co/ecslogrus"
 	"io"
 	"os"
-	"time"
 )
 
 type Service struct {
@@ -27,11 +27,11 @@ func NewService(
 
 func (s *Service) Init() error {
 	logrus.New()
-	logrus.SetFormatter(&logrus.JSONFormatter{
-		TimestampFormat:   time.RFC3339Nano,
+	logrus.SetFormatter(&ecslogrus.Formatter{
 		DisableHTMLEscape: false,
 		PrettyPrint:       true,
 	})
+	logrus.SetReportCaller(true)
 
 	logLevel, err := logrus.ParseLevel(s.logLevel)
 	if err != nil {
