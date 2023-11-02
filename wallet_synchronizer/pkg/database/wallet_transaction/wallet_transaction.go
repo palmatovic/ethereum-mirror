@@ -1,10 +1,11 @@
 package wallet_transaction
 
 import (
-	"github.com/graphql-go/graphql"
 	"time"
 	"wallet-synchronizer/pkg/database/token"
 	"wallet-synchronizer/pkg/database/wallet"
+
+	"github.com/graphql-go/graphql"
 )
 
 func (WalletTransaction) TableName() string {
@@ -12,18 +13,20 @@ func (WalletTransaction) TableName() string {
 }
 
 type WalletTransaction struct {
-	WalletTransactionId string    `json:"tx_hash" gorm:"column:WalletTransactionId;primaryKey"`
-	TxType              string    `json:"tx_type" gorm:"column:TxType"`
-	Pool                string    `json:"pool" gorm:"column:Pool"`
-	Price               float64   `json:"price" gorm:"column:Price;not null"`
-	Amount              float64   `json:"amount" gorm:"column:Amount"`
-	Total               float64   `json:"total" gorm:"column:Total;not null"`
-	AgeTimestamp        time.Time `json:"age_timestamp" gorm:"column:AgeTimestamp;type:DATETIME;not null"`
-	TokenId             string    `json:"token_id" gorm:"column:TokenId"`
-	Token               token.Token
-	WalletId            string        `json:"wallet_id" gorm:"column:WalletId"`
-	Wallet              wallet.Wallet `json:"-"`
-	CreatedAt           time.Time     `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
+	WalletTransactionId        string    `json:"tx_hash" gorm:"column:WalletTransactionId;primaryKey"`
+	TxType                     string    `json:"tx_type" gorm:"column:TxType"`
+	Pool                       string    `json:"pool" gorm:"column:Pool"`
+	Price                      float64   `json:"price" gorm:"column:Price;not null"`
+	Amount                     float64   `json:"amount" gorm:"column:Amount"`
+	Total                      float64   `json:"total" gorm:"column:Total;not null"`
+	AgeTimestamp               time.Time `json:"age_timestamp" gorm:"column:AgeTimestamp;type:DATETIME;not null"`
+	TokenId                    string    `json:"token_id" gorm:"column:TokenId"`
+	Token                      token.Token
+	WalletId                   string        `json:"wallet_id" gorm:"column:WalletId"`
+	Wallet                     wallet.Wallet `json:"-"`
+	CreatedAt                  time.Time     `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
+	ProcessedByOrderExecutor   bool          `json:"processed_by_order_executor" gorm:"column:ProcessedByOrderExecutor;type:boolean;default:false"`
+	ProcessedByOrderExecutorAt time.Time     `json:"processed_by_order_executor_at" gorm:"column:ProcessedByOrderExecutorAt;type:DATETIME"`
 }
 
 var WalletTransactionGraphQL = graphql.NewObject(graphql.ObjectConfig{
@@ -58,6 +61,12 @@ var WalletTransactionGraphQL = graphql.NewObject(graphql.ObjectConfig{
 			Type: graphql.String,
 		},
 		"created_at": &graphql.Field{
+			Type: graphql.DateTime,
+		},
+		"processed_by_order_executor": &graphql.Field{
+			Type: graphql.Bool,
+		},
+		"processed_by_order_executor_at": &graphql.Field{
 			Type: graphql.DateTime,
 		},
 	},
