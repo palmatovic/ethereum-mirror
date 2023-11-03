@@ -1,7 +1,6 @@
 package sync
 
 import (
-	"errors"
 	"github.com/playwright-community/playwright-go"
 	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
@@ -14,39 +13,25 @@ import (
 )
 
 type Sync struct {
-	Browser       playwright.Browser
-	Database      *gorm.DB
-	AlchemyApiKey string
-	OwnWallet     string
+	browser       playwright.Browser
+	database      *gorm.DB
+	alchemyApiKey string
+	ownWallet     wallet.Wallet
 }
 
-func NewSync(browser playwright.Browser, db *gorm.DB, ownWallet, alchemyApiKey string) *Sync {
+func NewSync(browser playwright.Browser, db *gorm.DB, ownWallet wallet.Wallet, alchemyApiKey string) *Sync {
 	return &Sync{
-		Browser:       browser,
-		Database:      db,
-		AlchemyApiKey: alchemyApiKey,
-		OwnWallet:     ownWallet,
+		browser:       browser,
+		database:      db,
+		alchemyApiKey: alchemyApiKey,
+		ownWallet:     ownWallet,
 	}
 }
 
 func (e *Sync) Sync() {
 	logrus.Infof("sync started")
 
-	var ownWalletDb wallet.Wallet
-	if err := e.Database.Where("WalletId = ?", e.OwnWallet).First(&ownWalletDb).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			ownWalletDb = wallet.Wallet{
-				WalletId: e.OwnWallet,
-				Type:     false,
-			}
-			if err = e.Database.Create(&ownWalletDb).Error; err != nil {
-				logrus.WithError(err).Errorf("failed to create own wallet")
-				return
-			}
-		}
-	}
-
-	_, err := wallet_token_service.NewService(e.Database, e.AlchemyApiKey, ownWalletDb).FindOrCreateWalletTokens()
+	_, err := wallet_token_service.NewService(e.database, e.alchemyApiKey, e.ownWallet).FindOrCreateWalletTokens()
 	if err != nil {
 		logrus.WithError(err).Error("cannot find or create own wallet tokens")
 		return
@@ -54,7 +39,7 @@ func (e *Sync) Sync() {
 
 	var wallets []wallet.Wallet
 
-	if err = e.Database.Where("Type = 1").Find(&wallets).Error; err != nil {
+	if err = e.database.Where("Type = 1").Find(&wallets).Error; err != nil {
 		logrus.WithError(err).Errorf("failed to find wallets")
 		return
 	}
@@ -76,19 +61,19 @@ func (e *Sync) Sync() {
 				<-semaphore
 			}()
 
-			wall, err := wallet_find_or_create_service.NewService(e.Database, wAddress).FindOrCreateWalletToMonitor()
+			wall, err := wallet_find_or_create_service.NewService(e.database, wAddress).FindOrCreateWalletToMonitor()
 			if err != nil {
 				logrus.WithError(err).Error("cannot find or create wallet")
 				return
 			}
 
-			walletTokens, err := wallet_token_service.NewService(e.Database, e.AlchemyApiKey, *wall).FindOrCreateWalletTokens()
+			walletTokens, err := wallet_token_service.NewService(e.database, e.alchemyApiKey, *wall).FindOrCreateWalletTokens()
 			if err != nil {
 				logrus.WithError(err).Error("cannot find or create wallet tokens")
 				return
 			}
 
-			err = wallet_transaction_service.FindOrCreateWalletTransactions(e.Database, walletTokens, e.Browser)
+			err = wallet_transaction_service.FindOrCreateWalletTransactions(e.database, walletTokens, e.browser)
 			if err != nil {
 				logrus.WithError(err).Error("cannot find or create wallet transactions")
 				return

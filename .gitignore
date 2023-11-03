@@ -5,9 +5,8 @@
 /wallet_synchronizer/.idea/
 /node_modules/
 /wallet_synchronizer/*.log
-/wallet_synchronizer/*.db
 /.idea/
 /wallet_synchronizer_node/
 /auth/.idea/
-/auth/auth.db
 /auth/*.log
+/order_executor/cmd/*.exe
