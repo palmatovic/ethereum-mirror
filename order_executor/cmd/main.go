@@ -1,8 +1,15 @@
 package main
 
 import (
+	"fmt"
+	"io"
 	sync "order-executor/pkg/cron"
-	database "order-executor/pkg/model/database"
+	db_t "order-executor/pkg/model/database/token"
+	db_w "order-executor/pkg/model/database/wallet"
+	db_wto "order-executor/pkg/model/database/wallet_token"
+	db_wtr "order-executor/pkg/model/database/wallet_transaction"
+	"os"
+	"strings"
 	syncronize "sync"
 	"time"
 
@@ -11,24 +18,29 @@ import (
 	"github.com/sirupsen/logrus"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
 
 // Environment
 // Defines the structure for holding environment variables
 type Environment struct {
-	MinPercOrderThreshold        int     `env:"MINPERCORDERTHRESHOLD,required"`
-	MaxPercOrderThreshold        int     `env:"MAXPERCORDERTHRESHOLD,required"`
-	SetMaxPercThreshold          bool    `env:"SETMAXPERCTHRESHOLD,required"`
-	SetMinPercThreshold          bool    `env:"SETMINPERCTHRESHOLD,required"`
-	OrderTimeExpirationThreshold int     `env:"ORDERTIMEEXPIRATIONTHRESHOLD,required"`
-	MaxPriceRangePerc            float32 `env:"MAXPRICERANGEPERC,required"`
+	MinPercOrderThreshold        int     `env:"MIN_PERC_ORDER_THRESHOLD,required"`
+	MaxPercOrderThreshold        int     `env:"MAX_PERC_ORDER_THRESHOLD,required"`
+	SetMaxPercThreshold          bool    `env:"SET_MAX_PERC_THRESHOLD,required"`
+	SetMinPercThreshold          bool    `env:"SET_MIN_PERC_THRESHOLD,required"`
+	OrderTimeExpirationThreshold int     `env:"ORDER_TIME_EXPIRATION_THRESHOLD,required"`
+	DefaultEarningThreshold      int     `env:"DEFAUL_EARNING_THRESHOLD,required"`
+	DefaultLossThreshold         int     `env:"DEFAUL_LOSS_THRESHOLD,required"`
+	MaxPriceRangePerc            float32 `env:"MAX_PRICE_RANGE_PERC,required"`
+	LogLevel                     string  `env:"LOG_LEVEL" envDefault:"debug"`
+	LogFilePath                  string  `env:"LOG_FILE_PATH" envDefault:"./orderexecutor.log"`
+	ConsoleLogEnable             bool    `env:"CONSOLE_LOG_ENABLE" envDefault:"true"`
 }
 
 func main() {
 	var (
 		e   = Environment{}
 		log = logrus.New()
-		db  *gorm.DB
 		err error
 	)
 
@@ -38,15 +50,8 @@ func main() {
 	}
 
 	// Open a connection to the SQLite database
-	if db, err = gorm.Open(sqlite.Open("orderexecutor.db"), &gorm.Config{}); err != nil {
-		log.WithError(err).Fatalln("error during database connection")
-	}
-
-	// Perform automatic database schema migration
-	err = db.AutoMigrate(&database.Movement{}, &database.Transaction{}, &database.Order{})
-	if err != nil {
-		log.WithError(err).Fatalln("error during migration of database")
-	}
+	db := initializeDatabase()
+	migrateDatabase(db)
 
 	// Create an instance of the cron environment
 	c := sync.Env{
@@ -55,6 +60,8 @@ func main() {
 		MaxPercOrderThreshold:        e.MaxPercOrderThreshold,
 		SetMaxPercThreshold:          e.SetMaxPercThreshold,
 		SetMinPercThreshold:          e.SetMinPercThreshold,
+		DefaultEarningThreshold:      e.DefaultEarningThreshold,
+		DefaultLossThreshold:         e.DefaultLossThreshold,
 		OrderTimeExpirationThreshold: e.OrderTimeExpirationThreshold,
 		MaxPriceRangePerc:            e.MaxPriceRangePerc,
 	}
@@ -83,4 +90,59 @@ func main() {
 
 	// This point is reached after the scheduler stops (due to blocking nature)
 	log.Infoln("scheduler stopped, shutting down")
+}
+
+func loadAppConfig() Environment {
+	var config Environment
+	if err := env.Parse(&config); err != nil {
+		handleError(err, "error during environment parsing")
+	}
+	config.LogFilePath = fmt.Sprintf("%s_%s.log", strings.Split(config.LogFilePath, ".log")[0], time.Now().UTC().Format(time.RFC3339))
+	return config
+}
+
+func initializeLogger(config Environment) {
+	logrus.New()
+	logrus.SetFormatter(&logrus.JSONFormatter{
+		TimestampFormat:   time.RFC3339Nano,
+		DisableHTMLEscape: false,
+		PrettyPrint:       true,
+	})
+
+	logLevel, err := logrus.ParseLevel(config.LogLevel)
+	handleError(err, "error during parse log level")
+
+	logrus.SetLevel(logLevel)
+
+	logFile, err := os.OpenFile(config.LogFilePath, os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0666)
+	handleError(err, "error during creation of log file")
+
+	var multiWriter io.Writer
+	if config.ConsoleLogEnable {
+		multiWriter = io.MultiWriter(logFile, os.Stdout)
+	} else {
+		multiWriter = io.MultiWriter(logFile)
+	}
+	logrus.SetOutput(multiWriter)
+
+}
+
+func initializeDatabase() *gorm.DB {
+	db, err := gorm.Open(sqlite.Open("./orderexecutor.db"), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
+	handleError(err, "error during database connection")
+
+	return db
+}
+
+func migrateDatabase(db *gorm.DB) {
+	err := db.AutoMigrate(&db_w.Wallet{}, &db_t.Token{}, &db_wto.WalletToken{}, &db_wtr.WalletTransaction{})
+	handleError(err, "error during migration of database")
+}
+
+func handleError(err error, message string) {
+	if err != nil {
+		logrus.Fatalf("%s: %v", message, err)
+	}
 }

@@ -3,13 +3,13 @@ package sync
 import (
 	"errors"
 	"fmt"
-	db_t "order-executor/pkg/model/database/token"
 	db_w "order-executor/pkg/model/database/wallet"
 	db_wto "order-executor/pkg/model/database/wallet_token"
 	db_wtr "order-executor/pkg/model/database/wallet_transaction"
 	u "order-executor/pkg/util"
 	"time"
 
+	"github.com/sirupsen/logrus"
 	"gorm.io/gorm"
 )
 
@@ -19,6 +19,8 @@ type Env struct {
 	SetMaxPercThreshold          bool
 	SetMinPercThreshold          bool
 	OrderTimeExpirationThreshold int
+	DefaultEarningThreshold      int
+	DefaultLossThreshold         int
 	MaxPriceRangePerc            float32
 	Database                     *gorm.DB
 }
@@ -44,74 +46,46 @@ func (e *Env) ExecuteOrders() (response interface{}, err error) {
 		currentProcessDate := time.Now()
 
 		for _, ct := range cryptoTransactions {
-
-			// 	// verifica che la transazione non sia scaduta
-			// qui va usata non la data di creazione ma la data della transazione.
-			transactionExpired := isTransactionExpired(ct.AgeTimestamp, currentProcessDate, e.OrderTimeExpirationThreshold)
-			if transactionExpired {
-				// scaduta
-				// marcala solo come processata
-				// forse va aggiunto un campo di stato di processamento scaduta, aperta, chiusa, annullata per superamento soglia ecc
-				err = setTransactionStatus(e.Database, ct, true, u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_EXPIRED)
-				if err != nil {
-					// lancia errore e continua
-				}
-			}
-			// prendo il wallet e poi il wallet token amount () usa TokenId di transactio.token per combaciare con wallet_token.
-
 			if ct.TxType == u.WALLET_TRANSACTION_TYPE_BUY {
-				// calcolo l'ammontare del wallet che sto monitorando
-				totalWalletAmount, err := calculateTotalWalletAmount(e.Database, ct.WalletId, &ct.WalletTransactionId)
-				totalTransactionAmount := ct.Price * ct.Amount
-				percTransactionAmount := totalTransactionAmount * 100 / *totalWalletAmount
-
-				// ora verifica le regole sulle percentuali.
-				err = e.transactionPercentageCheck(&percTransactionAmount)
-
-				// calcolo l'ammontare del mio wallet
-				totalPersonalWalletAmount, err := calculateTotalWalletAmount(e.Database, personalWallet.WalletId, &ct.WalletTransactionId)
-				totalPersonalTransactionAmount := *totalPersonalWalletAmount * *totalPersonalWalletAmount / 100
-				fmt.Print(totalPersonalTransactionAmount)
-
-				// totalPersonalTransactionAmount va diviso per il valore del token per sapere la quantità da comprare.
-				// immaginiamo che sia uno
-
-				// eseguo l'operazione e setto lo stato
-				err = setTransactionStatus(e.Database, ct, false, u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_OPENED)
+				err = e.manageBuyTransaction(personalWallet, ct, currentProcessDate)
 				if err != nil {
 					// lancia errore e continua
+					continue
 				}
 
-				// prendo il token generico
-				// da cui prenderò il valore corrente del token
-				token := new(db_t.Token)
-				err = e.Database.Where("TokenId = ?", ct.TokenId).First(token).Error
-				if err != nil {
-					if errors.Is(err, gorm.ErrRecordNotFound) {
+				// // prendo il token generico
+				// // da cui prenderò il valore corrente del token
+				// token := new(db_t.Token)
+				// err = e.Database.Where("TokenId = ?", ct.TokenId).First(token).Error
+				// if err != nil {
+				// 	if errors.Is(err, gorm.ErrRecordNotFound) {
 
-					} else {
+				// 	} else {
 
-					}
-				}
+				// 	}
+				// }
 
-				// prendo il token generico
-				// da cui prenderò il valore dell'ammontare per il token.
-				// se l'ammontare è zero alora
-				walletToken := new(db_wto.WalletToken)
-				err = e.Database.Where("TokenId = ? and WalletId = ?", ct.TokenId, ct.WalletId).First(walletToken).Error
-				if err != nil {
-					if errors.Is(err, gorm.ErrRecordNotFound) {
+				// // prendo il token generico
+				// // da cui prenderò il valore dell'ammontare per il token.
+				// // se l'ammontare è zero alora
+				// walletToken := new(db_wto.WalletToken)
+				// err = e.Database.Where("TokenId = ? and WalletId = ?", ct.TokenId, ct.WalletId).First(walletToken).Error
+				// if err != nil {
+				// 	if errors.Is(err, gorm.ErrRecordNotFound) {
 
-					} else {
+				// 	} else {
 
-					}
-				}
+				// 	}
+				// }
 
 			} else if ct.TxType == u.WALLET_TRANSACTION_TYPE_SELL {
 
 			} else {
 
 			}
+
+			// prendo il wallet e poi il wallet token amount () usa TokenId di transactio.token per combaciare con wallet_token.
+
 			// 	// prendi il saldo del wallet_token da cui parte la transazione,
 			// 	// calcola la percentuale
 
@@ -143,6 +117,92 @@ func (e *Env) ExecuteOrders() (response interface{}, err error) {
 	// salva la transazione come processata
 
 	return nil, nil
+}
+
+func (e *Env) manageBuyTransaction(personalWallet db_w.Wallet, ct db_wtr.WalletTransaction, currentProcessDate time.Time) (err error) {
+	// se è registrata devo aprirla comprando
+	// se è aperta devo capire se è ora di chiuderla e vendere
+	if ct.ProcessedByOrderExecutorStatus == u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_REGISTERED {
+		// verifica che la transazione non sia scaduta
+		transactionExpired := isTransactionExpired(ct.AgeTimestamp, currentProcessDate, e.OrderTimeExpirationThreshold)
+		if transactionExpired {
+			// scaduta
+			// marcala solo come processata
+			// forse va aggiunto un campo di stato di processamento scaduta, aperta, chiusa, annullata per superamento soglia ecc
+			err = setTransactionStatus(e.Database, ct, true, u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_EXPIRED)
+			if err != nil {
+				// lancia errore e continua
+				logrus.WithError(err).Errorf("failed to set transaction status")
+				return err
+			}
+		}
+
+		// calcolo l'ammontare del wallet che sto monitorando
+		totalWalletAmount, err := calculateTotalWalletAmount(e.Database, ct.WalletId, &ct.WalletTransactionId)
+		if err != nil {
+			// lancia errore e continua
+			logrus.WithError(err).Errorf("failed to set calculate monitored wallet amounth")
+			return err
+		}
+		totalTransactionAmount := ct.Price * ct.Amount
+		percTransactionAmount := totalTransactionAmount * 100 / *totalWalletAmount
+
+		// ora verifica le regole sulle percentuali.
+		err = e.transactionPercentageCheck(&percTransactionAmount)
+		if err != nil {
+			// lancia errore e continua
+			logrus.WithError(err).Errorf("transaction percentage check failed")
+			return err
+		}
+
+		// calcolo l'ammontare del mio wallet
+		totalPersonalWalletAmount, err := calculateTotalWalletAmount(e.Database, personalWallet.WalletId, &ct.WalletTransactionId)
+		if err != nil {
+			// lancia errore e continua
+			logrus.WithError(err).Errorf("failed to set calculate personal wallet amounth")
+			return err
+		}
+		totalPersonalTransactionAmount := *totalPersonalWalletAmount * *totalPersonalWalletAmount / 100
+
+		// totalPersonalTransactionAmount va diviso per il valore del token per sapere la quantità da comprare.
+		// immaginiamo che sia uno
+		numberOfTokensToBuy := totalPersonalTransactionAmount / 1
+		fmt.Print(numberOfTokensToBuy)
+
+		// apro transazione ed eseguo prima l'inserimento su db e poi la chiamata alle api
+		// se chiamata alle api va in errore effettuo il rollback
+		tx := e.Database.Begin()
+
+		if tx.Error != nil {
+			logrus.WithError(err).Errorf("failed to open db transaction")
+			return err
+		}
+
+		// eseguo l'operazione e setto lo stato
+		err = setTransactionStatus(e.Database, ct, false, u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_OPENED)
+		if err != nil {
+			tx.Rollback()
+			logrus.WithError(err).Errorf("failed to set transaction status")
+			return err
+		}
+
+		// EFFETTUA OPERAZIONE API
+		// ...
+
+		err = tx.Commit().Error
+		if err != nil {
+			tx.Rollback()
+			logrus.WithError(err).Errorf("failed to commit transaction")
+			return err
+		}
+
+	} else if ct.ProcessedByOrderExecutorStatus == u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_OPENED {
+		// prendi valore attuale del token rispetto all'apertura e verifica se va chiusain base
+		// a percentuale di perdita o guadagno impostati.
+
+	}
+	return nil
+
 }
 
 func isTransactionExpired(transactionDate time.Time, currentProcessDate time.Time, OrderTimeExpirationThreshold int) bool {
@@ -202,9 +262,8 @@ func calculateTotalWalletAmount(db *gorm.DB, walletId string, currentTransaction
 			// in questo caso allora ritorno 0
 			return &totalAmount, nil
 		} else {
-
+			return nil, err
 		}
-		return nil, err
 	}
 
 	// cicla sui wallet
