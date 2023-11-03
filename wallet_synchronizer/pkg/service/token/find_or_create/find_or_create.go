@@ -35,38 +35,44 @@ func (s *Service) FindOrCreateToken() (token *token_db.Token, err error) {
 	goplusService := goplus.NewService(s.contractAddress)
 	if _, token, err = token_get_service.NewService(s.db, s.contractAddress).Get(); err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			var tokenMetadata alchemy_token_metadata.TokenMetadataResponse
-			if tokenMetadata, err = alchemy_token_metadata.NewService(s.alchemyApiKey, s.contractAddress).TokenMetadata(); err != nil {
-				return token, err
-			}
-			var logo string
-			if len(tokenMetadata.Result.Logo) > 0 {
-				logo, err = downloadLogo(tokenMetadata.Result.Logo)
-				if err != nil {
-					logrus.WithError(err).Errorf("cannot download logo from alchemy response for contract address %v", s.contractAddress)
+			var newToken *token_db.Token
+			if s.contractAddress == "ethereum" {
+				newToken = &token_db.Token{
+					TokenId:  s.contractAddress,
+					Name:     "Ethereum",
+					Symbol:   "ETH",
+					Decimals: 18,
 				}
+			} else {
+				var tokenMetadata alchemy_token_metadata.TokenMetadataResponse
+				if tokenMetadata, err = alchemy_token_metadata.NewService(s.alchemyApiKey, s.contractAddress).TokenMetadata(); err != nil {
+					return token, err
+				}
+				var logo string
+				if len(tokenMetadata.Result.Logo) > 0 {
+					logo, err = downloadLogo(tokenMetadata.Result.Logo)
+					if err != nil {
+						logrus.WithError(err).Errorf("cannot download logo from alchemy response for contract address %v", s.contractAddress)
+					}
+				}
+				goplusResponse, errScam := goplusService.ScamCheck()
+				if errScam != nil {
+					return token, errScam
+				}
+				newToken = &token_db.Token{
+					TokenId:        s.contractAddress,
+					Name:           tokenMetadata.Result.Name,
+					Symbol:         tokenMetadata.Result.Symbol,
+					Decimals:       tokenMetadata.Result.Decimals,
+					Logo:           logo,
+					GoPlusResponse: goplusResponse,
+				}
+				skipScam = true
 			}
-			goplusResponse, errScam := goplusService.ScamCheck()
-			if errScam != nil {
-				return token, errScam
-			}
-
-			_, token, err = token_create_service.NewService(s.db, &token_db.Token{
-				TokenId:        s.contractAddress,
-				Name:           tokenMetadata.Result.Name,
-				Symbol:         tokenMetadata.Result.Symbol,
-				Decimals:       tokenMetadata.Result.Decimals,
-				Logo:           logo,
-				GoPlusResponse: goplusResponse,
-				//GoPlusResponse: func() []byte {
-				//	b, _ := json.Marshal(goplusResponse)
-				//	return b
-				//}(),
-			}).Create()
+			_, token, err = token_create_service.NewService(s.db, newToken).Create()
 			if err != nil {
 				return token, err
 			}
-			skipScam = true
 		}
 	}
 
@@ -76,10 +82,6 @@ func (s *Service) FindOrCreateToken() (token *token_db.Token, err error) {
 			return token, errScam
 		}
 		token.GoPlusResponse = goplusResponse
-		/*token.GoPlusResponse = func() []byte {
-			b, _ := json.Marshal(goplusResponse)
-			return b
-		}()*/
 		_, token, err = token_update_service.NewService(s.db, token).Update()
 		if err != nil {
 			return token, err
