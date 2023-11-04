@@ -3,6 +3,7 @@ package sync
 import (
 	"errors"
 	"fmt"
+	"math"
 	db_w "order-executor/pkg/model/database/wallet"
 	db_wto "order-executor/pkg/model/database/wallet_token"
 	db_wtr "order-executor/pkg/model/database/wallet_transaction"
@@ -21,8 +22,8 @@ type Env struct {
 	SetMaxPercThreshold          bool
 	SetMinPercThreshold          bool
 	OrderTimeExpirationThreshold int
-	DefaultEarningThreshold      int
-	DefaultLossThreshold         int
+	StopEarningThreshold         int
+	StopLossThreshold            int
 	MaxPriceRangePerc            float32
 	Database                     *gorm.DB
 }
@@ -211,8 +212,41 @@ func (e *Env) manageBuyTransaction(personalWallet db_w.Wallet, ct db_wtr.WalletT
 		}
 
 	} else if ct.ProcessedByOrderExecutorStatus == u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_OPENED {
-		// prendi valore attuale del token rispetto all'apertura e verifica se va chiusa in base
-		// a percentuale di perdita o guadagno impostati.
+		// verifica che non ci sia stata già una transazione di sell eseguita che abbia sovrascritto questa buy
+		// per farlo basta hai ancora token associati al mio wallet
+		var personalWalletTokenAbs *float64
+		personalWalletTokenAbs, err = calculateTotalWalletTokenAbs(e.Database, personalWallet.WalletId, ct.TokenId, nil)
+		if err != nil {
+			logrus.WithError(err).Errorf("failed to calculate personal wallet token abs")
+			return err
+		}
+		if *personalWalletTokenAbs > 0 {
+			// ho ancora dei token da gestire e vendere
+			// prendi valore attuale del token rispetto all'apertura e verifica se va chiusa in base
+			// a percentuale di perdita o guadagno impostati.
+			var startTransactionAbs float64
+			startTransactionAbs = ct.Price * ct.Amount
+			var endTransactionAbs float64
+			endTransactionAbs = 1 // e.calculateCurrentTokenAbs(...)
+			delta := math.Abs(endTransactionAbs - startTransactionAbs)
+			negativeSign := math.Signbit(endTransactionAbs - startTransactionAbs)
+			perc := delta * 100 / startTransactionAbs
+			if negativeSign && perc >= float64(e.StopLossThreshold) {
+				// vendi e smetti di perdere
+			} else if !negativeSign && perc >= float64(e.StopEarningThreshold) {
+				// vendi e smetti di guadagnare
+			} else {
+				// continua a mantenere aperta l'operazione e non fare nulla
+			}
+		} else {
+			// non ci sono più token da vendere quindi
+			// devo chiudere la transazione impostando il suo stato
+			err = setTransactionStatus(e.Database, ct, true, u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_ALREADY_CLOSED)
+			if err != nil {
+				logrus.WithError(err).Errorf("failed to set transaction status")
+				return err
+			}
+		}
 
 	}
 	return nil
@@ -332,5 +366,59 @@ func calculateTotalWalletAbs(db *gorm.DB, walletId string, currentTransactionId 
 		}
 	}
 	result = &totalAmount
+	return result, nil
+}
+
+func calculateTotalWalletTokenAbs(db *gorm.DB, walletId string, tokenId string, currentTransactionId *string) (result *float64, err error) {
+
+	// per un wallett devo prendere gli amount di un solo token e moltiplicarlo per
+	// il valore in dollari
+	// e prendere tutte le transazioni successive alla data di aggiornamento dei wallet token
+	// e sommare/sottrarre il loro amounth
+	var totalAbs float64 = 0
+	walletToken := new(db_wto.WalletToken)
+	err = db.Where("WalletId = ? and TokenId = ?", walletId, tokenId).First(walletToken).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			// in questo caso allora ritorno 0
+			return &totalAbs, nil
+		} else {
+			return nil, err
+		}
+	}
+
+	// cicla sui wallet
+	// per ogni wallet prendi l'amount e le transazioni dopo la data di modifica
+	if walletToken != nil {
+		// qui va moltiplicato il valore del token per il valore in dollari, per ora metto 1
+		totalAbs = totalAbs + (walletToken.TokenAmount * 1)
+		walletTransactions := new([]db_wtr.WalletTransaction)
+		if currentTransactionId != nil {
+			err = db.Where("WalletId = ? and TokenId = ? and AgeTimestamp > ? and TransactionId != ?", walletId, walletToken.TokenId, walletToken.UpdatedAt, currentTransactionId).Find(walletTransactions).Error
+		} else {
+			err = db.Where("WalletId = ? and TokenId = ? and AgeTimestamp > ?", walletId, walletToken.TokenId, walletToken.UpdatedAt).Find(walletTransactions).Error
+		}
+
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				result = &totalAbs
+				return result, nil
+			} else {
+				return nil, err
+			}
+		}
+		if walletTransactions != nil && len(*walletTransactions) > 0 {
+			for _, wtr := range *walletTransactions {
+				if wtr.TxType == u.WALLET_TRANSACTION_TYPE_BUY {
+					totalAbs = totalAbs + (wtr.Price * wtr.Amount)
+				} else if wtr.TxType == u.WALLET_TRANSACTION_TYPE_SELL {
+					totalAbs = totalAbs - (wtr.Price * wtr.Amount)
+				} else {
+					totalAbs = totalAbs
+				}
+			}
+		}
+	}
+	result = &totalAbs
 	return result, nil
 }

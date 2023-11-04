@@ -31,8 +31,8 @@ type Environment struct {
 	SetMaxPercThreshold          bool    `env:"SET_MAX_PERC_THRESHOLD,required"`
 	SetMinPercThreshold          bool    `env:"SET_MIN_PERC_THRESHOLD,required"`
 	OrderTimeExpirationThreshold int     `env:"ORDER_TIME_EXPIRATION_THRESHOLD,required"`
-	DefaultEarningThreshold      int     `env:"DEFAUL_EARNING_THRESHOLD,required"`
-	DefaultLossThreshold         int     `env:"DEFAUL_LOSS_THRESHOLD,required"`
+	StopEarningThreshold         int     `env:"STOP_EARNING_THRESHOLD,required"`
+	StopLossThreshold            int     `env:"STOP_LOSS_THRESHOLD,required"`
 	MaxPriceRangePerc            float32 `env:"MAX_PRICE_RANGE_PERC,required"`
 	LogLevel                     string  `env:"LOG_LEVEL" envDefault:"debug"`
 	LogFilePath                  string  `env:"LOG_FILE_PATH" envDefault:"./orderexecutor.log"`
@@ -64,8 +64,8 @@ func main() {
 		MaxAbsOrderThreshold:         e.MaxAbsOrderThreshold,
 		SetMaxPercThreshold:          e.SetMaxPercThreshold,
 		SetMinPercThreshold:          e.SetMinPercThreshold,
-		DefaultEarningThreshold:      e.DefaultEarningThreshold,
-		DefaultLossThreshold:         e.DefaultLossThreshold,
+		StopEarningThreshold:         e.StopEarningThreshold,
+		StopLossThreshold:            e.StopLossThreshold,
 		OrderTimeExpirationThreshold: e.OrderTimeExpirationThreshold,
 		MaxPriceRangePerc:            e.MaxPriceRangePerc,
 	}
