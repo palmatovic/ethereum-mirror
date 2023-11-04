@@ -26,6 +26,8 @@ import (
 type Environment struct {
 	MinPercOrderThreshold        int     `env:"MIN_PERC_ORDER_THRESHOLD,required"`
 	MaxPercOrderThreshold        int     `env:"MAX_PERC_ORDER_THRESHOLD,required"`
+	MinAbsOrderThreshold         int     `env:"MIN_ABS_ORDER_THRESHOLD,required"`
+	MaxAbsOrderThreshold         int     `env:"MAX_ABS_ORDER_THRESHOLD,require"`
 	SetMaxPercThreshold          bool    `env:"SET_MAX_PERC_THRESHOLD,required"`
 	SetMinPercThreshold          bool    `env:"SET_MIN_PERC_THRESHOLD,required"`
 	OrderTimeExpirationThreshold int     `env:"ORDER_TIME_EXPIRATION_THRESHOLD,required"`
@@ -58,6 +60,8 @@ func main() {
 		Database:                     db,
 		MinPercOrderThreshold:        e.MinPercOrderThreshold,
 		MaxPercOrderThreshold:        e.MaxPercOrderThreshold,
+		MinAbsOrderThreshold:         e.MinAbsOrderThreshold,
+		MaxAbsOrderThreshold:         e.MaxAbsOrderThreshold,
 		SetMaxPercThreshold:          e.SetMaxPercThreshold,
 		SetMinPercThreshold:          e.SetMinPercThreshold,
 		DefaultEarningThreshold:      e.DefaultEarningThreshold,

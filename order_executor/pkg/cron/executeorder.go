@@ -16,6 +16,8 @@ import (
 type Env struct {
 	MinPercOrderThreshold        int
 	MaxPercOrderThreshold        int
+	MinAbsOrderThreshold         int
+	MaxAbsOrderThreshold         int
 	SetMaxPercThreshold          bool
 	SetMinPercThreshold          bool
 	OrderTimeExpirationThreshold int
@@ -110,6 +112,8 @@ func (e *Env) ExecuteOrders() (response interface{}, err error) {
 
 			// 	// verifica che rispetti lee regole di threshold
 		}
+	} else {
+		logrus.Infof("no transctions to process")
 	}
 
 	// genera il corrispettivo ordine
@@ -137,36 +141,46 @@ func (e *Env) manageBuyTransaction(personalWallet db_w.Wallet, ct db_wtr.WalletT
 			}
 		}
 
+		// se non è scaduta
 		// calcolo l'ammontare del wallet che sto monitorando
-		totalWalletAmount, err := calculateTotalWalletAmount(e.Database, ct.WalletId, &ct.WalletTransactionId)
+		totalWalletAbs, err := calculateTotalWalletAbs(e.Database, ct.WalletId, &ct.WalletTransactionId)
 		if err != nil {
 			// lancia errore e continua
 			logrus.WithError(err).Errorf("failed to set calculate monitored wallet amounth")
 			return err
 		}
-		totalTransactionAmount := ct.Price * ct.Amount
-		percTransactionAmount := totalTransactionAmount * 100 / *totalWalletAmount
+		totalTransactionAbs := ct.Price * ct.Amount
+		totalTransactionPerc := totalTransactionAbs * 100 / *totalWalletAbs
 
 		// ora verifica le regole sulle percentuali.
-		err = e.transactionPercentageCheck(&percTransactionAmount)
+		// ovvero se non vado sopra la massima percentuale o sotto la minima
+		err = e.transactionPercentageCheck(&totalTransactionPerc)
 		if err != nil {
 			// lancia errore e continua
 			logrus.WithError(err).Errorf("transaction percentage check failed")
 			return err
 		}
 
-		// calcolo l'ammontare del mio wallet
-		totalPersonalWalletAmount, err := calculateTotalWalletAmount(e.Database, personalWallet.WalletId, &ct.WalletTransactionId)
+		// calcolo la cifra in dollari/euro del mio wallet
+		totalPersonalWalletAbs, err := calculateTotalWalletAbs(e.Database, personalWallet.WalletId, &ct.WalletTransactionId)
 		if err != nil {
 			// lancia errore e continua
 			logrus.WithError(err).Errorf("failed to set calculate personal wallet amounth")
 			return err
 		}
-		totalPersonalTransactionAmount := *totalPersonalWalletAmount * *totalPersonalWalletAmount / 100
+		totalPersonalTransactionAbs := totalTransactionPerc * *totalPersonalWalletAbs / 100
+
+		// ora verifico se la cifra che emerge è superiore o inferiore al massimo /minimo in assoluto
+		err = e.transactionAbsCheck(&totalPersonalTransactionAbs)
+		if err != nil {
+			// lancia errore e continua
+			logrus.WithError(err).Errorf("transaction abs check failed")
+			return err
+		}
 
 		// totalPersonalTransactionAmount va diviso per il valore del token per sapere la quantità da comprare.
 		// immaginiamo che sia uno
-		numberOfTokensToBuy := totalPersonalTransactionAmount / 1
+		numberOfTokensToBuy := totalPersonalTransactionAbs / 1
 		fmt.Print(numberOfTokensToBuy)
 
 		// apro transazione ed eseguo prima l'inserimento su db e poi la chiamata alle api
@@ -197,7 +211,7 @@ func (e *Env) manageBuyTransaction(personalWallet db_w.Wallet, ct db_wtr.WalletT
 		}
 
 	} else if ct.ProcessedByOrderExecutorStatus == u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_OPENED {
-		// prendi valore attuale del token rispetto all'apertura e verifica se va chiusain base
+		// prendi valore attuale del token rispetto all'apertura e verifica se va chiusa in base
 		// a percentuale di perdita o guadagno impostati.
 
 	}
@@ -248,7 +262,24 @@ func (e *Env) transactionPercentageCheck(percentage *float64) (err error) {
 	return nil
 }
 
-func calculateTotalWalletAmount(db *gorm.DB, walletId string, currentTransactionId *string) (result *float64, err error) {
+func (e *Env) transactionAbsCheck(abs *float64) (err error) {
+
+	maxAbs := float64(e.MaxPercOrderThreshold)
+	minAbs := float64(e.MinPercOrderThreshold)
+
+	if *abs > maxAbs && e.SetMaxPercThreshold {
+		abs = &maxAbs
+	} else if *abs > maxAbs && !e.SetMaxPercThreshold {
+		return errors.New("abs too hight")
+	} else if *abs < minAbs && e.SetMinPercThreshold {
+		abs = &minAbs
+	} else if *abs < minAbs && !e.SetMinPercThreshold {
+		return errors.New("abs too low")
+	}
+	return nil
+}
+
+func calculateTotalWalletAbs(db *gorm.DB, walletId string, currentTransactionId *string) (result *float64, err error) {
 
 	// per un wallett devo prendere tutti gli amount dei vari token e moltiplicarli per
 	// il valore in dollari
