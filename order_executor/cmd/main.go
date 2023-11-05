@@ -141,7 +141,7 @@ func initializeDatabase() *gorm.DB {
 }
 
 func migrateDatabase(db *gorm.DB) {
-	err := db.AutoMigrate(&db_w.Wallet{}, &db_t.Token{}, &db_wto.WalletToken{}, &db_wtr.WalletTransaction{})
+	err := db.AutoMigrate(&db_w.Wallet{}, &db_t.Token{}, &db_wto.WalletToken{}, &db_wtr.WalletTransaction{}, &db_t.TokenPrice{})
 	handleError(err, "error during migration of database")
 }
 

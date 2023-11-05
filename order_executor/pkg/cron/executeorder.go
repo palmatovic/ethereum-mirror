@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	db_t "order-executor/pkg/model/database/token"
 	db_w "order-executor/pkg/model/database/wallet"
 	db_wto "order-executor/pkg/model/database/wallet_token"
 	db_wtr "order-executor/pkg/model/database/wallet_transaction"
@@ -39,7 +40,7 @@ func (e *Env) ExecuteOrders() (response interface{}, err error) {
 	// prendi tutte le transazioni recuperate non ancora processate
 
 	var cryptoTransactions []db_wtr.WalletTransaction
-	err = e.Database.Where("ProcessedByOrderExecutor = ?", false).Preload("Wallet").Find(&cryptoTransactions).Error
+	err = e.Database.Where("ProcessedByOrderExecutor = ?", false).Find(&cryptoTransactions).Error
 
 	if err != nil {
 		return nil, err
@@ -181,7 +182,12 @@ func (e *Env) manageBuyTransaction(personalWallet db_w.Wallet, ct db_wtr.WalletT
 
 		// totalPersonalTransactionAmount va diviso per il valore del token per sapere la quantità da comprare.
 		// immaginiamo che sia uno
-		numberOfTokensToBuy := totalPersonalTransactionAbs / 1
+		var tokenPrice *float64
+		tokenPrice, err = getCurrentTokenAbs(e.Database, ct.TokenId)
+		if err != nil {
+			return err
+		}
+		numberOfTokensToBuy := totalPersonalTransactionAbs / *tokenPrice
 		fmt.Print(numberOfTokensToBuy)
 
 		// apro transazione ed eseguo prima l'inserimento su db e poi la chiamata alle api
@@ -227,7 +233,12 @@ func (e *Env) manageBuyTransaction(personalWallet db_w.Wallet, ct db_wtr.WalletT
 			var startTransactionAbs float64
 			startTransactionAbs = ct.Price * ct.Amount
 			var endTransactionAbs float64
-			endTransactionAbs = 1 // e.calculateCurrentTokenAbs(...)
+			var tokenPrice *float64
+			tokenPrice, err = getCurrentTokenAbs(e.Database, ct.TokenId)
+			if err != nil {
+				return err
+			}
+			endTransactionAbs = *tokenPrice
 			delta := math.Abs(endTransactionAbs - startTransactionAbs)
 			negativeSign := math.Signbit(endTransactionAbs - startTransactionAbs)
 			perc := delta * 100 / startTransactionAbs
@@ -319,13 +330,13 @@ func calculateTotalWalletAbs(db *gorm.DB, walletId string, currentTransactionId 
 	// il valore in dollari
 	// e prendere tutte le transazioni successive alla data di aggiornamento dei wallet token
 	// e sommare/sottrarre il loro amounth
-	var totalAmount float64 = 0
+	var totalAbs float64 = 0
 	walletTokens := new([]db_wto.WalletToken)
 	err = db.Where("WalletId = ?", walletId).Find(walletTokens).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// in questo caso allora ritorno 0
-			return &totalAmount, nil
+			return &totalAbs, nil
 		} else {
 			return nil, err
 		}
@@ -336,7 +347,11 @@ func calculateTotalWalletAbs(db *gorm.DB, walletId string, currentTransactionId 
 	if walletTokens != nil && len(*walletTokens) > 0 {
 		for _, wto := range *walletTokens {
 			// qui va moltiplicato il valore del token per il valore in dollari, per ora metto 1
-			totalAmount = totalAmount + (wto.TokenAmount * 1)
+			tokenPrice, err := getCurrentTokenAbs(db, wto.TokenId)
+			if err != nil {
+				return nil, err
+			}
+			totalAbs = totalAbs + (wto.TokenAmount * *tokenPrice)
 			walletTransactions := new([]db_wtr.WalletTransaction)
 			if currentTransactionId != nil {
 				err = db.Where("WalletId = ? and TokenId = ? and AgeTimestamp > ? and TransactionId != ?", walletId, wto.TokenId, wto.UpdatedAt, currentTransactionId).Find(walletTransactions).Error
@@ -346,26 +361,28 @@ func calculateTotalWalletAbs(db *gorm.DB, walletId string, currentTransactionId 
 
 			if err != nil {
 				if errors.Is(err, gorm.ErrRecordNotFound) {
-
+					// non c'è problema se non ci sono transazioni dopo l'ultimo
+					// aggiornamento del wallet
+					result = &totalAbs
+					return result, nil
 				} else {
-
+					return nil, err
 				}
-				return nil, err
 			}
 			if walletTransactions != nil && len(*walletTransactions) > 0 {
 				for _, wtr := range *walletTransactions {
 					if wtr.TxType == u.WALLET_TRANSACTION_TYPE_BUY {
-						totalAmount = totalAmount + (wtr.Price * wtr.Amount)
+						totalAbs = totalAbs + (wtr.Price * wtr.Amount)
 					} else if wtr.TxType == u.WALLET_TRANSACTION_TYPE_SELL {
-						totalAmount = totalAmount - (wtr.Price * wtr.Amount)
+						totalAbs = totalAbs - (wtr.Price * wtr.Amount)
 					} else {
-						totalAmount = totalAmount
+						totalAbs = totalAbs
 					}
 				}
 			}
 		}
 	}
-	result = &totalAmount
+	result = &totalAbs
 	return result, nil
 }
 
@@ -391,7 +408,12 @@ func calculateTotalWalletTokenAbs(db *gorm.DB, walletId string, tokenId string, 
 	// per ogni wallet prendi l'amount e le transazioni dopo la data di modifica
 	if walletToken != nil {
 		// qui va moltiplicato il valore del token per il valore in dollari, per ora metto 1
-		totalAbs = totalAbs + (walletToken.TokenAmount * 1)
+		var tokenPrice *float64
+		tokenPrice, err = getCurrentTokenAbs(db, tokenId)
+		if err != nil {
+			return nil, err
+		}
+		totalAbs = totalAbs + (walletToken.TokenAmount * *tokenPrice)
 		walletTransactions := new([]db_wtr.WalletTransaction)
 		if currentTransactionId != nil {
 			err = db.Where("WalletId = ? and TokenId = ? and AgeTimestamp > ? and TransactionId != ?", walletId, walletToken.TokenId, walletToken.UpdatedAt, currentTransactionId).Find(walletTransactions).Error
@@ -420,5 +442,16 @@ func calculateTotalWalletTokenAbs(db *gorm.DB, walletId string, tokenId string, 
 		}
 	}
 	result = &totalAbs
+	return result, nil
+}
+
+func getCurrentTokenAbs(db *gorm.DB, tokenId string) (result *float64, err error) {
+
+	tokenPrice := new(db_t.TokenPrice)
+	err = db.Where("TokenId = ?", tokenId).Order("PriceDate DESC").First(tokenPrice).Error
+	if err != nil {
+		return nil, err
+	}
+	result = &((*tokenPrice).Price)
 	return result, nil
 }
