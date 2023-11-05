@@ -4,15 +4,11 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
-	"github.com/gofiber/fiber/v2"
-	"github.com/playwright-community/playwright-go"
-	"github.com/sirupsen/logrus"
-	"golang.org/x/sync/errgroup"
-	"gorm.io/gorm"
 	"os"
 	"time"
 	graphql_api "wallet-synchronizer/pkg/api/graphql"
 	token_api "wallet-synchronizer/pkg/api/token"
+	db_t "wallet-synchronizer/pkg/database/token"
 	"wallet-synchronizer/pkg/database/wallet"
 	"wallet-synchronizer/pkg/database/wallet_token"
 	"wallet-synchronizer/pkg/database/wallet_transaction"
@@ -35,6 +31,12 @@ import (
 	wallet_token_url "wallet-synchronizer/pkg/url/wallet_token"
 	wallet_transaction_url "wallet-synchronizer/pkg/url/wallet_transaction"
 
+	"github.com/gofiber/fiber/v2"
+	"github.com/playwright-community/playwright-go"
+	"github.com/sirupsen/logrus"
+	"golang.org/x/sync/errgroup"
+	"gorm.io/gorm"
+
 	wallet_api "wallet-synchronizer/pkg/api/wallet"
 	wallet_token_api "wallet-synchronizer/pkg/api/wallet_token"
 	wallet_transaction_api "wallet-synchronizer/pkg/api/wallet_transaction"
@@ -54,6 +56,8 @@ func main() {
 		&wallet.Wallet{},
 		&wallet_token.WalletToken{},
 		&wallet_transaction.WalletTransaction{},
+		&db_t.Token{},
+		&db_t.TokenPrice{},
 	).Init()
 	handleError(err, "init database error")
 

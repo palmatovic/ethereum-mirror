@@ -276,12 +276,13 @@ func isTransactionExpired(transactionDate time.Time, currentProcessDate time.Tim
 }
 
 func setTransactionStatus(db *gorm.DB, transaction db_wtr.WalletTransaction, processed bool, status string) (err error) {
-
+	updateDate := time.Now()
 	transaction.ProcessedByOrderExecutor = processed
 	if processed {
-		transaction.ProcessedByOrderExecutorAt = time.Now()
+		transaction.ProcessedByOrderExecutorAt = updateDate
 	}
 	transaction.ProcessedByOrderExecutorStatus = status
+	transaction.UpdatedAt = updateDate
 	err = db.Where("WalletTransactionId = ?", transaction.WalletTransactionId).Updates(&transaction).Error
 
 	if err != nil {

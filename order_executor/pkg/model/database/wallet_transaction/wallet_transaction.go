@@ -25,6 +25,7 @@ type WalletTransaction struct {
 	WalletId                       string        `json:"wallet_id" gorm:"column:WalletId"`
 	Wallet                         wallet.Wallet `json:"-"`
 	CreatedAt                      time.Time     `json:"created_at" gorm:"column:CreatedAt;autoCreateTime"`
+	UpdatedAt                      time.Time     `json:"updated_at" gorm:"column:UpdatedAt;autoCreateTime"`
 	ProcessedByOrderExecutor       bool          `json:"processed_by_order_executor" gorm:"column:ProcessedByOrderExecutor;default:0"`
 	ProcessedByOrderExecutorAt     time.Time     `json:"processed_by_order_executor_at" gorm:"column:ProcessedByOrderExecutorAt;type:DATETIME"`
 	ProcessedByOrderExecutorStatus string        `json:"processed_by_order_executor_status" gorm:"column:ProcessedByOrderExecutorStatus;default:registered"`
@@ -64,11 +65,17 @@ var WalletTransactionGraphQL = graphql.NewObject(graphql.ObjectConfig{
 		"created_at": &graphql.Field{
 			Type: graphql.DateTime,
 		},
+		"updated_at": &graphql.Field{
+			Type: graphql.DateTime,
+		},
 		"processed_by_order_executor": &graphql.Field{
 			Type: graphql.Boolean,
 		},
 		"processed_by_order_executor_at": &graphql.Field{
 			Type: graphql.DateTime,
+		},
+		"processed_by_order_executor_status": &graphql.Field{
+			Type: graphql.String,
 		},
 	},
 })
