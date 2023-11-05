@@ -125,6 +125,137 @@ func (e *Env) ExecuteOrders() (response interface{}, err error) {
 	return nil, nil
 }
 
+// da finire
+func (e *Env) manageSellTransaction(personalWallet db_w.Wallet, ct db_wtr.WalletTransaction, currentProcessDate time.Time) (err error) {
+	// se è registrata devo aprirla comprando
+	// se è aperta devo capire se è ora di chiuderla e vendere
+	if ct.ProcessedByOrderExecutorStatus == u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_REGISTERED {
+		// verifica che la transazione non sia scaduta
+		transactionExpired := isTransactionExpired(ct.AgeTimestamp, currentProcessDate, e.OrderTimeExpirationThreshold)
+		if transactionExpired {
+			// scaduta
+			// marcala solo come processata
+			// forse va aggiunto un campo di stato di processamento scaduta, aperta, chiusa, annullata per superamento soglia ecc
+			err = setTransactionStatus(e.Database, ct, true, u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_EXPIRED)
+			if err != nil {
+				// lancia errore e continua
+				logrus.WithError(err).Errorf("failed to set transaction status")
+				return err
+			}
+		}
+
+		// se non è scaduta
+		// calcolo l'ammontare del wallet che sto monitorando
+		totalWalletAbs, err := calculateTotalWalletAbs(e.Database, ct.WalletId, &ct.WalletTransactionId)
+		if err != nil {
+			// lancia errore e continua
+			logrus.WithError(err).Errorf("failed to set calculate monitored wallet amounth")
+			return err
+		}
+		totalTransactionAbs := ct.Price * ct.Amount
+		totalTransactionPerc := totalTransactionAbs * 100 / *totalWalletAbs
+
+		// ora verifica le regole sulle percentuali.
+		// ovvero se non vado sopra la massima percentuale o sotto la minima
+		err = e.transactionPercentageCheck(&totalTransactionPerc)
+		if err != nil {
+			// lancia errore e continua
+			logrus.WithError(err).Errorf("transaction percentage check failed")
+			return err
+		}
+
+		// calcolo la cifra in dollari/euro del mio wallet
+		totalPersonalWalletAbs, err := calculateTotalWalletAbs(e.Database, personalWallet.WalletId, &ct.WalletTransactionId)
+		if err != nil {
+			// lancia errore e continua
+			logrus.WithError(err).Errorf("failed to set calculate personal wallet amounth")
+			return err
+		}
+		totalPersonalTransactionAbs := totalTransactionPerc * *totalPersonalWalletAbs / 100
+
+		// ora verifico se la cifra che emerge è superiore o inferiore al massimo /minimo in assoluto
+		err = e.transactionAbsCheck(&totalPersonalTransactionAbs)
+		if err != nil {
+			// lancia errore e continua
+			logrus.WithError(err).Errorf("transaction abs check failed")
+			return err
+		}
+
+		// totalPersonalTransactionAmount va diviso per il valore del token per sapere la quantità da comprare.
+		// immaginiamo che sia uno
+		var tokenPrice *float64
+		tokenPrice, err = getCurrentTokenAbs(e.Database, ct.TokenId)
+		if err != nil {
+			return err
+		}
+		numberOfTokensToBuy := totalPersonalTransactionAbs / *tokenPrice
+		fmt.Print(numberOfTokensToBuy)
+
+		// apro transazione ed eseguo prima l'inserimento su db e poi la chiamata alle api
+		// se chiamata alle api va in errore effettuo il rollback
+		err = executeOperation(e.Database, ct, false, u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_OPENED)
+		if err != nil {
+			logrus.WithError(err).Errorf("failed to execute operation on chain")
+			return err
+		}
+	} else if ct.ProcessedByOrderExecutorStatus == u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_OPENED {
+		// verifica che non ci sia stata già una transazione di sell eseguita che abbia sovrascritto questa buy
+		// per farlo basta hai ancora token associati al mio wallet
+		var personalWalletTokenAbs *float64
+		var personalWalletTokenAmount *float64
+		personalWalletTokenAbs, personalWalletTokenAmount, err = calculateTotalWalletTokenAbs(e.Database, personalWallet.WalletId, ct.TokenId, nil)
+		if err != nil {
+			logrus.WithError(err).Errorf("failed to calculate personal wallet token abs")
+			return err
+		}
+		if *personalWalletTokenAbs > 0 {
+			// ho ancora dei token da gestire e vendere
+			// prendi valore attuale del token rispetto all'apertura e verifica se va chiusa in base
+			// a percentuale di perdita o guadagno impostati.
+			var startTransactionAbs float64
+			startTransactionAbs = ct.Price * ct.Amount
+			var endTransactionAbs float64
+			var tokenPrice *float64
+			tokenPrice, err = getCurrentTokenAbs(e.Database, ct.TokenId)
+			if err != nil {
+				return err
+			}
+			endTransactionAbs = *tokenPrice
+			delta := math.Abs(endTransactionAbs - startTransactionAbs)
+			negativeSign := math.Signbit(endTransactionAbs - startTransactionAbs)
+			perc := delta * 100 / startTransactionAbs
+			if negativeSign && perc >= float64(e.StopLossThreshold) {
+				// vendi e smetti di perdere
+				fmt.Sprint(personalWalletTokenAmount)
+				// apri transazione e vendilo
+				err = executeOperation(e.Database, ct, true, u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_CLOSED)
+				if err != nil {
+					logrus.WithError(err).Errorf("failed to execute operation on chain")
+					return err
+				}
+			} else if !negativeSign && perc >= float64(e.StopEarningThreshold) {
+				// vendi e smetti di guadagnare
+				err = executeOperation(e.Database, ct, true, u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_CLOSED)
+				if err != nil {
+					logrus.WithError(err).Errorf("failed to execute operation on chain")
+					return err
+				}
+			} else {
+				// continua a mantenere aperta l'operazione e non fare nulla
+			}
+		} else {
+			// non ci sono più token da vendere quindi
+			// devo chiudere la transazione impostando il suo stato
+			err = setTransactionStatus(e.Database, ct, true, u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_ALREADY_CLOSED)
+			if err != nil {
+				logrus.WithError(err).Errorf("failed to set transaction status")
+				return err
+			}
+		}
+	}
+	return nil
+}
+
 func (e *Env) manageBuyTransaction(personalWallet db_w.Wallet, ct db_wtr.WalletTransaction, currentProcessDate time.Time) (err error) {
 	// se è registrata devo aprirla comprando
 	// se è aperta devo capire se è ora di chiuderla e vendere
@@ -192,36 +323,17 @@ func (e *Env) manageBuyTransaction(personalWallet db_w.Wallet, ct db_wtr.WalletT
 
 		// apro transazione ed eseguo prima l'inserimento su db e poi la chiamata alle api
 		// se chiamata alle api va in errore effettuo il rollback
-		tx := e.Database.Begin()
-
-		if tx.Error != nil {
-			logrus.WithError(err).Errorf("failed to open db transaction")
-			return err
-		}
-
-		// eseguo l'operazione e setto lo stato
-		err = setTransactionStatus(e.Database, ct, false, u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_OPENED)
+		err = executeOperation(e.Database, ct, false, u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_OPENED)
 		if err != nil {
-			tx.Rollback()
-			logrus.WithError(err).Errorf("failed to set transaction status")
+			logrus.WithError(err).Errorf("failed to execute operation on chain")
 			return err
 		}
-
-		// EFFETTUA OPERAZIONE API
-		// ...
-
-		err = tx.Commit().Error
-		if err != nil {
-			tx.Rollback()
-			logrus.WithError(err).Errorf("failed to commit transaction")
-			return err
-		}
-
 	} else if ct.ProcessedByOrderExecutorStatus == u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_OPENED {
 		// verifica che non ci sia stata già una transazione di sell eseguita che abbia sovrascritto questa buy
 		// per farlo basta hai ancora token associati al mio wallet
 		var personalWalletTokenAbs *float64
-		personalWalletTokenAbs, err = calculateTotalWalletTokenAbs(e.Database, personalWallet.WalletId, ct.TokenId, nil)
+		var personalWalletTokenAmount *float64
+		personalWalletTokenAbs, personalWalletTokenAmount, err = calculateTotalWalletTokenAbs(e.Database, personalWallet.WalletId, ct.TokenId, nil)
 		if err != nil {
 			logrus.WithError(err).Errorf("failed to calculate personal wallet token abs")
 			return err
@@ -244,8 +356,20 @@ func (e *Env) manageBuyTransaction(personalWallet db_w.Wallet, ct db_wtr.WalletT
 			perc := delta * 100 / startTransactionAbs
 			if negativeSign && perc >= float64(e.StopLossThreshold) {
 				// vendi e smetti di perdere
+				fmt.Sprint(personalWalletTokenAmount)
+				// apri transazione e vendilo
+				err = executeOperation(e.Database, ct, true, u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_CLOSED)
+				if err != nil {
+					logrus.WithError(err).Errorf("failed to execute operation on chain")
+					return err
+				}
 			} else if !negativeSign && perc >= float64(e.StopEarningThreshold) {
 				// vendi e smetti di guadagnare
+				err = executeOperation(e.Database, ct, true, u.WALLET_TRANSACTION_ORDER_EXECUTOR_STATUS_CLOSED)
+				if err != nil {
+					logrus.WithError(err).Errorf("failed to execute operation on chain")
+					return err
+				}
 			} else {
 				// continua a mantenere aperta l'operazione e non fare nulla
 			}
@@ -258,10 +382,8 @@ func (e *Env) manageBuyTransaction(personalWallet db_w.Wallet, ct db_wtr.WalletT
 				return err
 			}
 		}
-
 	}
 	return nil
-
 }
 
 func isTransactionExpired(transactionDate time.Time, currentProcessDate time.Time, OrderTimeExpirationThreshold int) bool {
@@ -387,21 +509,23 @@ func calculateTotalWalletAbs(db *gorm.DB, walletId string, currentTransactionId 
 	return result, nil
 }
 
-func calculateTotalWalletTokenAbs(db *gorm.DB, walletId string, tokenId string, currentTransactionId *string) (result *float64, err error) {
+func calculateTotalWalletTokenAbs(db *gorm.DB, walletId string, tokenId string, currentTransactionId *string) (*float64, *float64, error) {
 
 	// per un wallett devo prendere gli amount di un solo token e moltiplicarlo per
 	// il valore in dollari
 	// e prendere tutte le transazioni successive alla data di aggiornamento dei wallet token
 	// e sommare/sottrarre il loro amounth
+	var err error
 	var totalAbs float64 = 0
+	var totalAmount float64 = 0
 	walletToken := new(db_wto.WalletToken)
 	err = db.Where("WalletId = ? and TokenId = ?", walletId, tokenId).First(walletToken).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			// in questo caso allora ritorno 0
-			return &totalAbs, nil
+			return &totalAbs, &totalAmount, nil
 		} else {
-			return nil, err
+			return nil, nil, err
 		}
 	}
 
@@ -412,7 +536,7 @@ func calculateTotalWalletTokenAbs(db *gorm.DB, walletId string, tokenId string, 
 		var tokenPrice *float64
 		tokenPrice, err = getCurrentTokenAbs(db, tokenId)
 		if err != nil {
-			return nil, err
+			return nil, nil, err
 		}
 		totalAbs = totalAbs + (walletToken.TokenAmount * *tokenPrice)
 		walletTransactions := new([]db_wtr.WalletTransaction)
@@ -424,26 +548,27 @@ func calculateTotalWalletTokenAbs(db *gorm.DB, walletId string, tokenId string, 
 
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
-				result = &totalAbs
-				return result, nil
+				return &totalAbs, &totalAmount, nil
 			} else {
-				return nil, err
+				return nil, nil, err
 			}
 		}
 		if walletTransactions != nil && len(*walletTransactions) > 0 {
 			for _, wtr := range *walletTransactions {
 				if wtr.TxType == u.WALLET_TRANSACTION_TYPE_BUY {
 					totalAbs = totalAbs + (wtr.Price * wtr.Amount)
+					totalAmount = totalAmount + wtr.Amount
 				} else if wtr.TxType == u.WALLET_TRANSACTION_TYPE_SELL {
 					totalAbs = totalAbs - (wtr.Price * wtr.Amount)
+					totalAmount = totalAmount - wtr.Amount
 				} else {
 					totalAbs = totalAbs
+					totalAmount = totalAmount
 				}
 			}
 		}
 	}
-	result = &totalAbs
-	return result, nil
+	return &totalAbs, &totalAmount, nil
 }
 
 func getCurrentTokenAbs(db *gorm.DB, tokenId string) (result *float64, err error) {
@@ -455,4 +580,34 @@ func getCurrentTokenAbs(db *gorm.DB, tokenId string) (result *float64, err error
 	}
 	result = &((*tokenPrice).Price)
 	return result, nil
+}
+
+// sicuramente devo passare anche il token l'amount dell'operazione
+func executeOperation(db *gorm.DB, ct db_wtr.WalletTransaction, executorProcessBool bool, executorProcessStatus string) (err error) {
+
+	tx := db.Begin()
+
+	if tx.Error != nil {
+		logrus.WithError(err).Errorf("failed to open db transaction")
+		return err
+	}
+
+	// eseguo l'operazione e setto lo stato
+	err = setTransactionStatus(db, ct, executorProcessBool, executorProcessStatus)
+	if err != nil {
+		tx.Rollback()
+		logrus.WithError(err).Errorf("failed to set transaction status")
+		return err
+	}
+
+	// EFFETTUA OPERAZIONE API
+	// ...
+
+	err = tx.Commit().Error
+	if err != nil {
+		tx.Rollback()
+		logrus.WithError(err).Errorf("failed to commit transaction")
+		return err
+	}
+	return nil
 }
