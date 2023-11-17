@@ -16,9 +16,4 @@ var AllPerm = []string{
 	Get,
 	Delete,
 	List,
-	Create,
-	Update,
-	Get,
-	Delete,
-	List,
 }
